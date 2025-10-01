@@ -1,0 +1,55 @@
+import { createRouter, createWebHistory } from "vue-router";
+import Home from "../components/Home.vue";
+import PhoneList from "../components/PhoneList.vue";
+import Promotions from "../components/Promotions.vue";
+import News from "../components/News.vue";
+import Contact from "../components/Contact.vue";
+import Policy from "../components/Policy.vue";
+import PhoneDetail from "../components/PhoneDetail.vue";
+import Register from "../components/Register.vue";
+import Login from "../components/Login.vue";
+import ForgotPassword from "../components/Forgotpassword.vue";
+import Profile from "../components/Profile.vue";
+import Cart from "../components/Cart.vue";
+import PaymentManager from "../components/PaymentManager.vue";
+import PurchaseDetail from "../components/PurchaseDetail.vue";
+import PurchaseStatus from "../components/PurchaseStatus.vue";
+import AirPodsPromo from "../components/AirPodsPromo.vue";
+import AccessoriesPromo from "../components/AccessoriesPromo.vue";
+import StudentDealPromo from "../components/StudentDealPromo.vue";
+import TradeInPromo from "../components/TradeInPromo.vue";
+
+const routes = [
+  { path: "/", name: "Home", component: Home },
+  { path: "/phones", name: "Phones", component: PhoneList },
+  { path: "/phones/:id", name: "PhoneDetail", component: PhoneDetail, props: true },
+
+  { path: "/promotions", name: "Promotions", component: Promotions },
+  { path: "/promotions/september", name: "PromoSeptember", component: Promotions },
+  { path: "/promotions/back-to-school", name: "PromoBackToSchool", component: Promotions },
+  { path: "/promotions/students", name: "PromoStudents", component: Promotions },
+
+  { path: "/news", name: "News", component: News },
+  { path: "/contact", name: "Contact", component: Contact },
+  { path: "/policy", name: "Policy", component: Policy },
+  { path: "/register", name: "Register", component: Register },
+  { path: "/login", name: "Login", component: Login },
+  { path: "/forgot-password", name: "ForgotPassword", component: ForgotPassword },
+  { path: "/profile", name: "Profile", component: Profile },
+  { path: "/cart", name: "Cart", component: Cart },
+  { path: "/payment", name: "Payment", component: PaymentManager }, 
+ { path: "/purchases/:purchaseId", name: "PurchaseDetail", component: PurchaseDetail, props: true },
+  { path: "/purchases/:purchaseId/status", name: "PurchaseStatus", component: PurchaseStatus, props: true },
+  { path: "/airpodspromo", name: "AirPodsPromo", component: AirPodsPromo },
+  { path: "/accessoriespromo", name: "AccessoriesPromo", component: AccessoriesPromo },
+  { path: "/studentdealpromo", name: "StudentDealPromo", component: StudentDealPromo },
+  { path: "/tradeInpromo", name: "TradeInPromo", component: TradeInPromo },
+
+];
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes,
+});
+
+export default router;
