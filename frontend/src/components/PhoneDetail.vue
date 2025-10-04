@@ -5,13 +5,14 @@
       <img :src="selectedColor?.image || phone.image" alt="product image" />
     </div>
 
+    <!-- Thông tin -->
     <div class="info-section">
-      <h2>{{ phone.name }}</h2>
+      <h2 class="title">{{ phone.name }}</h2>
       <p class="brand"><b>Hãng:</b> {{ phone.brand }}</p>
-      <p class="price">Giá: {{ formatPrice(finalPrice) }}</p>
+      <p class="price">💰 {{ formatPrice(finalPrice) }}</p>
 
       <!-- Chọn màu -->
-      <div class="option" v-if="phone.colors?.length">
+      <div v-if="phone.colors?.length" class="option">
         <label>Màu sắc:</label>
         <div class="color-options">
           <div
@@ -21,12 +22,13 @@
             :style="{ backgroundColor: mapColor(c.name) }"
             :class="{ active: selectedColor?.name === c.name }"
             @click="selectedColor = c"
+            :title="c.name"
           ></div>
         </div>
       </div>
 
       <!-- Chọn bộ nhớ -->
-      <div class="option" v-if="phone.storages?.length">
+      <div v-if="phone.storages?.length" class="option">
         <label>Bộ nhớ trong:</label>
         <div class="storage-options">
           <button
@@ -41,17 +43,7 @@
         </div>
       </div>
 
-      <!-- Chính sách -->
-      <div class="policy">
-        <h4>Chính sách bảo hành</h4>
-        <ul>
-          <li>Bảo hành chính hãng 12 tháng</li>
-          <li>1 đổi 1 trong 30 ngày nếu lỗi</li>
-          <li>Hỗ trợ trả góp 0%</li>
-        </ul>
-      </div>
-
-      <!-- Button -->
+      <!-- Nút hành động -->
       <div class="actions">
         <button class="add-cart" :disabled="isAdding" @click="addToCart">
           🛒 Thêm vào giỏ hàng
@@ -83,8 +75,6 @@ export default {
     finalPrice() {
       if (!this.phone) return 0;
       const base = this.phone.basePrice || 0;
-      if (!this.selectedStorage) return base;
-      // Hỗ trợ cả extraPrice và priceDelta
       const delta =
         this.selectedStorage?.extraPrice ??
         this.selectedStorage?.priceDelta ??
@@ -99,23 +89,17 @@ export default {
         const res = await axios.get(`http://localhost:5000/api/phones/${id}`);
         this.phone = res.data;
 
-        // Chọn mặc định
-        if (this.phone?.colors?.length && !this.selectedColor)
-          this.selectedColor = this.phone.colors[0];
-        if (this.phone?.storages?.length && !this.selectedStorage)
-          this.selectedStorage = this.phone.storages[0];
+        if (this.phone?.colors?.length) this.selectedColor = this.phone.colors[0];
+        if (this.phone?.storages?.length) this.selectedStorage = this.phone.storages[0];
       } catch (err) {
-        console.error("fetchPhone error:", err);
+        console.error("❌ fetchPhone error:", err);
       }
     },
     ensureSelections() {
-      // Đảm bảo luôn có lựa chọn để backend lưu đúng biến thể
-      if (this.phone?.colors?.length && !this.selectedColor) {
+      if (this.phone?.colors?.length && !this.selectedColor)
         this.selectedColor = this.phone.colors[0];
-      }
-      if (this.phone?.storages?.length && !this.selectedStorage) {
+      if (this.phone?.storages?.length && !this.selectedStorage)
         this.selectedStorage = this.phone.storages[0];
-      }
     },
     formatPrice(value) {
       return new Intl.NumberFormat("vi-VN", {
@@ -138,15 +122,10 @@ export default {
         Nâu: "#A52A2A",
         "Xanh lá": "#008000",
         "Xanh dương": "#1E90FF",
-        "Vàng hồng": "#B76E79",
-        "Trắng ngà": "#FFFFF0",
-        "Đen bóng": "#1C1C1C",
-        Kem: "#FFFDD0",
       };
       return colors[colorName] || "#ccc";
     },
 
-    // ✅ Thêm vào giỏ hàng
     async addToCart() {
       const user = JSON.parse(localStorage.getItem("user"));
       if (!user) {
@@ -159,8 +138,8 @@ export default {
       const item = {
         phoneId: String(this.phone._id),
         name: this.phone.name,
-        color: this.selectedColor?.name || null,
-        storage: this.selectedStorage?.size || null,
+        color: this.selectedColor?.name,
+        storage: this.selectedStorage?.size,
         price: this.finalPrice,
         quantity: 1,
         image: this.selectedColor?.image || this.phone.image,
@@ -173,21 +152,12 @@ export default {
           item,
         });
 
-        // Linh hoạt đọc kết quả
         const items =
           res.data?.items ||
           res.data?.order?.items ||
-          (Array.isArray(res.data) ? res.data : null);
+          (Array.isArray(res.data) ? res.data : []);
 
-        if (!Array.isArray(items)) {
-          throw new Error(
-            "API /api/orders/add phải trả về { items: [...] } hoặc { order: { items: [...] } }"
-          );
-        }
-
-        // Phát sự kiện cho Cart.vue cập nhật ngay
         emitter.emit("cart-updated", items);
-        // Thông báo để người dùng biết (có thể bỏ nếu bạn chỉ muốn toast ở Cart)
         alert("✅ Đã thêm vào giỏ hàng!");
       } catch (err) {
         console.error("❌ Lỗi thêm giỏ hàng:", err.response?.data || err);
@@ -197,7 +167,6 @@ export default {
       }
     },
 
-    // ✅ Mua ngay
     async buyNow() {
       const user = JSON.parse(localStorage.getItem("user"));
       if (!user) {
@@ -210,8 +179,8 @@ export default {
       const item = {
         phoneId: String(this.phone._id),
         name: this.phone.name,
-        color: this.selectedColor?.name || null,
-        storage: this.selectedStorage?.size || null,
+        color: this.selectedColor?.name,
+        storage: this.selectedStorage?.size,
         price: this.finalPrice,
         quantity: 1,
         image: this.selectedColor?.image || this.phone.image,
@@ -219,20 +188,8 @@ export default {
 
       this.isBuying = true;
       try {
-        const res = await axios.post(
-          "http://localhost:5000/api/purchases/checkout",
-          {
-            email: user.email,
-            items: [item],
-            total: this.finalPrice,
-          }
-        );
-
-        if (res.data?.purchaseId) {
-          this.$router.push(`/purchases/${res.data.purchaseId}`);
-        } else {
-          alert("❌ Không nhận được purchaseId từ server!");
-        }
+        localStorage.setItem("cart", JSON.stringify({ items: [item], total: this.finalPrice }));
+        this.$router.push("/purchase-detail");
       } catch (err) {
         console.error("❌ Lỗi buyNow:", err);
         alert("Mua hàng thất bại!");
@@ -252,122 +209,128 @@ export default {
 };
 </script>
 
-
-
-
-
 <style scoped>
 .product-detail {
   display: flex;
   gap: 40px;
-  padding: 30px;
+  padding: 40px;
+  max-width: 1100px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
 }
 
+.image-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .image-section img {
-  width: 350px;
+  width: 380px;
+  height: 380px;
+  object-fit: contain;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  background: #fafafa;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.15);
 }
 
 .info-section {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: bold;
+  color: #333;
+}
+
+.brand {
+  font-size: 16px;
+  color: #666;
 }
 
 .price {
-  color: #ff6600;
-  font-size: 22px;
+  font-size: 26px;
   font-weight: bold;
-  margin: 10px 0;
+  color: #ff6600;
 }
 
 .option {
-  margin: 15px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .color-options {
   display: flex;
-  gap: 10px;
-  margin-top: 8px;
+  gap: 12px;
 }
-
 .color-circle {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   border: 2px solid #ddd;
   cursor: pointer;
   transition: 0.2s;
 }
-
 .color-circle.active {
   border: 3px solid #ff6600;
+  transform: scale(1.1);
 }
 
 .storage-options {
   display: flex;
   gap: 10px;
-  margin-top: 8px;
 }
-
 .storage-btn {
-  padding: 8px 14px;
+  padding: 8px 16px;
   border: 1px solid #ccc;
-  border-radius: 6px;
+  border-radius: 8px;
+  background: #fdfdfd;
   cursor: pointer;
-  background: white;
   transition: 0.2s;
 }
-
+.storage-btn:hover {
+  background: #f2f2f2;
+}
 .storage-btn.active {
   background: #ff6600;
   color: white;
   border-color: #ff6600;
 }
 
-.policy, .payment {
-  margin: 20px 0;
-  background: #f9f9f9;
-  padding: 12px;
-  border-radius: 8px;
-}
-
 .actions {
-  margin-top: 20px;
   display: flex;
   gap: 15px;
+  margin-top: 20px;
 }
-
 .add-cart, .buy-now {
-  padding: 12px 20px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
+  flex: 1;
+  padding: 14px 20px;
   font-size: 16px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.25s;
 }
-
 .add-cart {
   background: #333;
   color: white;
 }
-
+.add-cart:hover {
+  background: #000;
+}
 .buy-now {
   background: #ff6600;
   color: white;
 }
-.image-section {
-  width: 350px;
-  height: 350px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-.image-section img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
+.buy-now:hover {
+  background: #e65c00;
 }
 </style>

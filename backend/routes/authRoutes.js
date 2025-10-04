@@ -1,6 +1,6 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
-const User = require("../models/User"); // phải đúng đường dẫn
+const User = require("../models/User.js"); // phải đúng đường dẫn
 
 const router = express.Router();
 
@@ -27,7 +27,7 @@ router.post("/register", async (req, res) => {
     // Trả về thông tin cần thiết
     res.status(201).json({
       message: "Đăng ký thành công",
-      user: { id: newUser._id, email: newUser.email },
+      user: { id: newUser._id, email: newUser.email, name: newUser.name, role: newUser.role },
     });
   } catch (err) {
     console.error("Lỗi đăng ký:", err);
@@ -55,7 +55,7 @@ router.post("/login", async (req, res) => {
 
     res.json({
       message: "Đăng nhập thành công",
-      user: { id: user._id, email: user.email, name: user.name },
+      user: { id: user._id, email: user.email, name: user.name, role: user.role },
     });
   } catch (err) {
     console.error("Lỗi đăng nhập:", err);

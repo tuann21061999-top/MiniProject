@@ -10,6 +10,14 @@
           <p><b>Ngày đặt:</b> {{ new Date(order.createdAt).toLocaleString() }}</p>
         </div>
 
+        <!-- Thông tin giao hàng -->
+        <div class="order-shipping">
+          <p><b>Người nhận:</b> {{ order.fullName }}</p>
+          <p><b>SĐT:</b>{{ order.phone }}</p>
+          <p><b>Địa chỉ:</b> {{ order.shippingAddress }}, {{ order.province }}</p>
+          <p><i>{{ order.region }}</i></p>
+        </div>
+
         <!-- Danh sách sản phẩm -->
         <div class="order-items">
           <div v-for="(item, idx) in order.items" :key="idx" class="order-item">
@@ -33,17 +41,12 @@
                 current: idx === visibleSteps(order).length - 1
               }"
             >
-              <div class="dot">
-                <span>{{ getStepIcon(step) }}</span>
-              </div>
+              <div class="dot"><span>{{ getStepIcon(step) }}</span></div>
               <p class="step-label">{{ step }}</p>
             </div>
-
-            <!-- Connector chỉ nằm giữa các bước -->
             <div
               v-if="idx < visibleSteps(order).length - 1"
-              class="timeline-connector"
-              :class="{ active: true }"
+              class="timeline-connector active"
             />
           </template>
         </div>
@@ -56,7 +59,7 @@
           </p>
         </div>
 
-        <!-- Bảng giá chi tiết -->
+        <!-- Bảng phí -->
         <div class="price-breakdown">
           <table>
             <tbody>
@@ -65,11 +68,11 @@
                 <td>{{ formatPrice(getItemsPrice(order)) }}</td>
               </tr>
               <tr v-if="order.regionFee">
-                <td>🚚 Phí vận chuyển ({{ order.region || '—' }})</td>
+                <td>🌍 Phí khu vực ({{ order.region || '—' }})</td>
                 <td>+ {{ formatPrice(order.regionFee) }}</td>
               </tr>
               <tr v-if="order.methodFee">
-                <td>🏷️ Dịch vụ giao hàng ({{ order.shippingMethod || '—' }})</td>
+                <td>🚚 Dịch vụ giao hàng ({{ order.shippingMethod || '—' }})</td>
                 <td>+ {{ formatPrice(order.methodFee) }}</td>
               </tr>
               <tr v-if="order.warrantyFee">
@@ -84,7 +87,7 @@
           </table>
         </div>
 
-        <!-- Nút hủy -->
+        <!-- Hủy -->
         <div v-if="canCancel(order)" class="cancel-btn">
           <button @click="openCancelPopup(order)">❌ Hủy đơn hàng</button>
         </div>
@@ -93,7 +96,7 @@
 
     <p v-else>❌ Chưa có đơn hàng nào.</p>
 
-    <!-- Popup hủy -->
+    <!-- Popup Hủy -->
     <div v-if="showCancelPopup" class="popup-overlay">
       <div class="popup">
         <h4>Chọn lý do hủy đơn</h4>
@@ -112,7 +115,6 @@
     </div>
   </div>
 </template>
-
 <script>
 import axios from "axios";
 
@@ -184,7 +186,7 @@ export default {
 
     checkProgress(order) {
       const now = Date.now();
-      if (order.status === "cancelled" || order.currentStep >= order.timeline.length - 1 || order.failed) return;
+      if (["cancelled", "done", "unsuccessful"].includes(order.status) || order.failed) return;
 
       if (now >= order.nextUpdateTime) {
         order.currentStep++;
@@ -231,13 +233,10 @@ export default {
 
     async updateStatus(orderId, status) {
       try {
-        const res = await axios.put(
+        await axios.put(
           `http://localhost:5000/api/purchases/${orderId}/status`,
           { status }
         );
-        if (res.data?.success) {
-          console.log("✅ Cập nhật trạng thái:", status);
-        }
       } catch (err) {
         console.error("❌ Lỗi cập nhật trạng thái:", err);
       }
@@ -263,9 +262,7 @@ export default {
     canCancel(order) {
       const currentLabel = order.timeline[order.currentStep];
       return (
-        order.status !== "done" &&
-        order.status !== "unsuccessful" &&
-        order.status !== "cancelled" &&
+        !["done","unsuccessful","cancelled"].includes(order.status) &&
         currentLabel !== "Chờ xác nhận giao hàng"
       );
     },
@@ -286,7 +283,7 @@ export default {
       }
       await this.updateStatus(this.cancelOrder._id, "cancelled");
       this.cancelOrder.status = "cancelled";
-      this.saveOrderState(this.cancelOrder); // dừng tiến trình
+      this.saveOrderState(this.cancelOrder);
       this.showCancelPopup = false;
       alert("❌ Đơn hàng đã được hủy và dừng xử lý!");
     },
@@ -333,8 +330,14 @@ export default {
 <style scoped>
 /* ===== Card ===== */
 .orders-list { display: flex; flex-direction: column; gap: 20px; }
-.order-card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
+.order-card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
 .order-header { display: flex; justify-content: space-between; flex-wrap: wrap; margin-bottom: 12px; }
+
+/* ===== Shipping Info ===== */
+.order-shipping { font-size: 14px; margin-bottom: 12px; padding: 8px; border-left: 3px solid #ff6600; background: #fff7f2; border-radius: 6px; }
+.order-shipping p { margin: 2px 0; }
+
+/* ===== Items ===== */
 .order-items { border-top: 1px dashed #ccc; margin-top: 8px; padding-top: 8px; }
 .order-item { display: flex; gap: 12px; margin-bottom: 10px; }
 .item-img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; }

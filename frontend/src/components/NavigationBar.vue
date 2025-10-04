@@ -20,7 +20,7 @@
         <input
           type="text"
           v-model="searchQuery"
-          placeholder="Tìm kiếm sản phẩm..."
+          placeholder="🔍 Tìm kiếm sản phẩm..."
           @input="onInput"
           @keyup.enter="search"
         />
@@ -32,7 +32,7 @@
             <img :src="item.image" alt="product" class="suggestion-img" />
             <div class="suggestion-info">
               <span class="suggestion-name">
-                {{ item.name || item.title || item.phoneName || "Không có tên" }}
+                {{ item.name || item.title || "Không có tên" }}
               </span>
               <span class="suggestion-price">{{ formatPrice(item.basePrice) }}</span>
             </div>
@@ -54,7 +54,11 @@
           <router-link to="/register" class="btn-register">Đăng ký</router-link>
         </template>
         <template v-else>
-          <router-link to="/profile" class="user-name">
+          
+          <router-link
+            :to="user.role === 'admin' ? '/admin' : '/profile'"
+            class="user-name"
+          >
             👤 Xin chào, {{ user.name }}
           </router-link>
           <button @click="logout" class="btn-logout">Đăng xuất</button>
@@ -123,7 +127,6 @@ export default {
       if (this.phonesCache) return;
       try {
         const res = await axios.get("http://localhost:5000/api/phones");
-        console.log("📦 Phones data:", res.data); // log dữ liệu API
         this.phonesCache = res.data || [];
       } catch (err) {
         console.error("Không lấy được phones:", err);
@@ -140,24 +143,42 @@ export default {
     },
 
     async fetchSuggestions() {
-      const q = this.searchQuery.trim();
+      const q = this.searchQuery.trim().toLowerCase();
       if (!q) {
         this.suggestions = [];
         return;
       }
-      await this.ensurePhonesCache();
-      const lc = q.toLowerCase();
-      this.suggestions = this.phonesCache
-        .filter((p) => p.name && p.name.toLowerCase().includes(lc))
-        .slice(0, 7);
 
-      console.log("🔎 Suggestions:", this.suggestions);
+      await this.ensurePhonesCache();
+
+      // Danh sách brand phổ biến
+      const brands = ["iphone", "samsung", "xiaomi", "oppo", "vivo", "realme"];
+
+      if (brands.includes(q)) {
+        // ✅ Nếu tìm theo brand
+        this.suggestions = this.phonesCache
+          .filter((p) => p.brand && p.brand.toLowerCase().includes(q))
+          .slice(0, 7);
+      } else {
+        // ✅ Nếu tìm theo tên sản phẩm
+        this.suggestions = this.phonesCache
+          .filter((p) => p.name && p.name.toLowerCase().includes(q))
+          .slice(0, 7);
+      }
     },
 
     search() {
-      const q = this.searchQuery.trim();
+      const q = this.searchQuery.trim().toLowerCase();
       if (!q) return;
-      this.$router.push({ path: "/phones", query: { q } });
+
+      const brands = ["iphone", "samsung", "xiaomi", "oppo", "vivo", "realme"];
+
+      if (brands.includes(q)) {
+        this.$router.push({ path: "/phones", query: { brand: q } });
+      } else {
+        this.$router.push({ path: "/phones", query: { q } });
+      }
+
       this.showSuggestions = false;
     },
 
@@ -243,50 +264,58 @@ export default {
   gap: 15px;
 }
 
-/* Search */
+/* Search box */
 .search-box {
   position: relative;
   display: flex;
   align-items: center;
-  background: white;
-  border-radius: 20px;
-  padding: 4px 8px;
+  background: #fff;
+  border-radius: 24px;   /* giảm radius cho gọn */
+  padding: 4px 10px;     /* nhỏ hơn */
+  border: 2px solid #ff6600;
+  transition: all 0.3s;
+}
+.search-box:focus-within {
+  box-shadow: 0 0 8px rgba(255,102,0,0.5); /* hiệu ứng nhỏ hơn */
 }
 .search-box input {
   border: none;
   outline: none;
-  padding: 6px 10px;
+  padding: 6px 10px;     /* nhỏ lại */
   border-radius: 20px;
-  font-size: 14px;
+  font-size: 14px;       /* chữ nhỏ hơn */
+  flex: 1;
 }
 .search-box button {
   background: #ff6600;
   border: none;
-  padding: 6px 12px;
-  margin-left: 5px;
-  color: white;
-  font-size: 14px;
-  cursor: pointer;
+  width: 28px;           /* giảm từ 34px xuống */
+  height: 28px;
+  margin-left: 6px;
   border-radius: 50%;
-  transition: background 0.3s;
+  cursor: pointer;
+  color: #fff;
+  font-size: 13px;       /* icon nhỏ lại */
+  transition: transform 0.2s, background 0.3s;
 }
 .search-box button:hover {
   background: #e65500;
+  transform: scale(1.08); /* hiệu ứng nhẹ hơn */
 }
 
 /* Gợi ý sản phẩm */
 .suggestions {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   left: 0;
   right: 0;
   background: #fff;
   border: 1px solid #ddd;
-  border-radius: 8px;
+  border-radius: 10px;
   list-style: none;
   padding: 0;
   margin: 0;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
   z-index: 1500;
   max-height: 280px;
   overflow-y: auto;
@@ -298,9 +327,11 @@ export default {
   padding: 10px 14px;
   cursor: pointer;
   border-bottom: 1px solid #f1f1f1;
+  transition: background 0.2s, transform 0.2s;
 }
 .suggestions li:hover {
   background: #f9f9f9;
+  transform: translateX(4px);
 }
 .suggestion-img {
   width: 40px;

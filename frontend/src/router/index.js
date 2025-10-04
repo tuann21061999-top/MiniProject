@@ -18,6 +18,10 @@ import AirPodsPromo from "../components/AirPodsPromo.vue";
 import AccessoriesPromo from "../components/AccessoriesPromo.vue";
 import StudentDealPromo from "../components/StudentDealPromo.vue";
 import TradeInPromo from "../components/TradeInPromo.vue";
+import AddressManager from "../components/AddressManager.vue";
+import Admin from "../components/Admin.vue";
+import Admin2 from "../components/Admin2.vue";
+
 
 const routes = [
   { path: "/", name: "Home", component: Home },
@@ -37,14 +41,22 @@ const routes = [
   { path: "/forgot-password", name: "ForgotPassword", component: ForgotPassword },
   { path: "/profile", name: "Profile", component: Profile },
   { path: "/cart", name: "Cart", component: Cart },
-  { path: "/payment", name: "Payment", component: PaymentManager }, 
- { path: "/purchases/:purchaseId", name: "PurchaseDetail", component: PurchaseDetail, props: true },
+  { path: "/payment", name: "Payment", component: PaymentManager },
+
+  // ✅ Thêm route tĩnh để đọc giỏ hàng từ localStorage
+  { path: "/purchase-detail", name: "PurchaseDetailLocal", component: PurchaseDetail },
+
+  // ✅ Route động khi đã có purchaseId (từ DB)
+  { path: "/purchases/:purchaseId", name: "PurchaseDetail", component: PurchaseDetail, props: true },
   { path: "/purchases/:purchaseId/status", name: "PurchaseStatus", component: PurchaseStatus, props: true },
+
   { path: "/airpodspromo", name: "AirPodsPromo", component: AirPodsPromo },
   { path: "/accessoriespromo", name: "AccessoriesPromo", component: AccessoriesPromo },
   { path: "/studentdealpromo", name: "StudentDealPromo", component: StudentDealPromo },
   { path: "/tradeInpromo", name: "TradeInPromo", component: TradeInPromo },
-
+  { path: "/addressmanager", name: "AddressManager", component: AddressManager },
+  { path: "/admin", name: "Admin", component: Admin },
+  { path: "/admin2", name: "Admin2", component: Admin2 },
 ];
 
 const router = createRouter({

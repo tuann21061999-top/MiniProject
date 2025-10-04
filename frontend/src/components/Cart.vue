@@ -37,7 +37,7 @@
       <!-- Tổng tiền -->
       <div class="cart-summary">
         <p><b>Tổng tiền:</b> {{ formatPrice(totalPrice) }}</p>
-        <button class="checkout" @click="checkout">✅ Đặt hàng</button>
+        <button class="checkout" @click="checkout">✅ Tiến hành đặt hàng</button>
       </div>
     </div>
 
@@ -89,7 +89,6 @@ export default {
       }
     },
 
-    // ✅ Truyền delta đúng: -1 / +1
     async changeQty(item, delta) {
       if (!this.user || !delta) return;
 
@@ -101,7 +100,7 @@ export default {
             phoneId: item.phoneId,
             color: item.color,
             storage: item.storage,
-            delta, // -1 hoặc +1
+            delta,
           }
         );
 
@@ -112,7 +111,6 @@ export default {
 
         this.cart = items.map((p) => ({
           ...p,
-          // giữ ảnh cũ nếu API không trả về
           image:
             p.image ||
             this.cart.find(
@@ -166,6 +164,7 @@ export default {
       }
     },
 
+    // ✅ Checkout: chỉ lưu tạm vào localStorage rồi chuyển sang PurchaseDetail
     async checkout() {
       if (!this.user) {
         alert("Bạn cần đăng nhập để đặt hàng!");
@@ -179,30 +178,14 @@ export default {
       }
 
       try {
-        const res = await axios.post(
-          "http://localhost:5000/api/purchases/checkout",
-          {
-            email: this.user.email,
-            items: this.cart.map((item) => ({
-              phoneId: item.phoneId,
-              name: item.name,
-              color: item.color,
-              storage: item.storage,
-              price: item.price,
-              quantity: item.quantity,
-              image: item.image,
-            })),
-            total: this.totalPrice,
-          }
-        );
+        localStorage.setItem("cart", JSON.stringify({
+          items: this.cart,
+          total: this.totalPrice
+        }));
 
-        if (res.data?.purchaseId) {
-          this.$router.push(`/purchases/${res.data.purchaseId}`);
-        } else {
-          alert("❌ Không nhận được purchaseId từ server!");
-        }
+        this.$router.push("/purchase-detail");
       } catch (err) {
-        console.error("❌ Lỗi đặt hàng:", err.response?.data || err);
+        console.error("❌ Lỗi khi chuẩn bị checkout:", err);
         alert("Đặt hàng thất bại, vui lòng thử lại!");
       }
     },
@@ -210,11 +193,8 @@ export default {
   mounted() {
     this.loadCart();
 
-    // Lắng nghe giỏ hàng cập nhật từ PhoneDetail
     this._onCartUpdated = (items) => {
-      const normalized =
-        items ||
-        [];
+      const normalized = items || [];
       this.cart = normalized.map((p) => ({
         ...p,
         image:
@@ -232,16 +212,12 @@ export default {
     emitter.on("cart-updated", this._onCartUpdated);
   },
   beforeUnmount() {
-    // Tránh leak listener khi điều hướng
     if (this._onCartUpdated) {
       emitter.off?.("cart-updated", this._onCartUpdated);
     }
   },
 };
 </script>
-
-
-
 
 
 <style scoped>

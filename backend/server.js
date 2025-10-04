@@ -9,6 +9,9 @@ const bcrypt = require("bcrypt");
 const orderRoutes = require("./routes/orderRoutes.js");
 const bankRoutes = require("./routes/bankRoutes.js");
 const purchasesRoute = require("./routes/purchasesRoutes.js");
+const addressRoutes = require("./routes/addressRoutes.js");
+const payMethodRoutes = require("./routes/payMethodRoutes.js");
+const statsRoutes = require("./routes/statsRoutes.js");
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -28,6 +31,10 @@ app.use("/api/phones", phoneRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/banks", bankRoutes);
 app.use("/api/purchases", purchasesRoute);
+app.use("/api/addresses", addressRoutes);
+app.use("/api/paymethods", payMethodRoutes);
+app.use("/api/stats", statsRoutes);
+
 
 
 // Server

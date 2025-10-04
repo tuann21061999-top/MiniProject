@@ -15,7 +15,7 @@
             :class="{ active: acc.isDefault }"
             @click="setDefaultAccount(acc)"
           >
-            {{ acc.display }}
+            {{ formatMasked(acc) }}
             <span v-if="acc.isDefault" class="check-mark">✅</span>
             <button class="remove-btn" @click.stop="removeAccount(acc)">🗑</button>
           </li>
@@ -34,7 +34,7 @@
             :class="{ active: acc.isDefault }"
             @click="setDefaultAccount(acc)"
           >
-            {{ acc.display }}
+            {{ formatMasked(acc) }}
             <span v-if="acc.isDefault" class="check-mark">✅</span>
             <button class="remove-btn" @click.stop="removeAccount(acc)">🗑</button>
           </li>
@@ -54,7 +54,7 @@
             @click="setDefaultAccount(acc)"
           >
             <img v-if="acc.logo" :src="acc.logo" class="account-logo" />
-            {{ acc.display }}
+            {{ formatMasked(acc) }}
             <span v-if="acc.isDefault" class="check-mark">✅</span>
             <button class="remove-btn" @click.stop="removeAccount(acc)">🗑</button>
           </li>
@@ -73,7 +73,7 @@
             :class="{ active: acc.isDefault }"
             @click="setDefaultAccount(acc)"
           >
-            {{ acc.display }}
+            {{ formatMasked(acc) }}
             <span v-if="acc.isDefault" class="check-mark">✅</span>
             <button class="remove-btn" @click.stop="removeAccount(acc)">🗑</button>
           </li>
@@ -92,7 +92,7 @@
             :class="{ active: acc.isDefault }"
             @click="setDefaultAccount(acc)"
           >
-            {{ acc.display }}
+            {{ formatMasked(acc) }}
             <span v-if="acc.isDefault" class="check-mark">✅</span>
             <button class="remove-btn" @click.stop="removeAccount(acc)">🗑</button>
           </li>
@@ -111,7 +111,7 @@
             :class="{ active: acc.isDefault }"
             @click="setDefaultAccount(acc)"
           >
-            {{ acc.display }}
+            {{ formatMasked(acc) }}
             <span v-if="acc.isDefault" class="check-mark">✅</span>
             <button class="remove-btn" @click.stop="removeAccount(acc)">🗑</button>
           </li>
@@ -214,7 +214,7 @@ export default {
     return {
       showForm: false,
       selectedMethod: null,
-      linkedAccounts: JSON.parse(localStorage.getItem("linkedAccounts") || "[]"),
+      linkedAccounts: [],
       formData: {
         cardNumber: "",
         expiry: "",
@@ -228,21 +228,9 @@ export default {
         logo: "",
       },
       banks: [],
+      user: JSON.parse(localStorage.getItem("user")) || null,
+      selectedMethodLabel: "",
     };
-  },
-  computed: {
-    selectedMethodLabel() {
-      const map = {
-        visa: "Visa",
-        mastercard: "MasterCard",
-        bank: "Ngân hàng",
-        momo: "Momo",
-        zalopay: "ZaloPay",
-        paypal: "PayPal",
-        cod: "COD",
-      };
-      return map[this.selectedMethod] || "";
-    },
   },
   methods: {
     async fetchBanks() {
@@ -253,12 +241,45 @@ export default {
         console.error("❌ Lỗi lấy ngân hàng:", err);
       }
     },
+
+    async fetchAccounts() {
+      if (!this.user?.id) return;
+      try {
+        const res = await axios.get(`http://localhost:5000/api/paymethods/${this.user.id}`);
+        this.linkedAccounts = res.data;
+      } catch (err) {
+        console.error("❌ Lỗi lấy phương thức thanh toán:", err);
+      }
+    },
+
     getAccountsByType(t) {
       return this.linkedAccounts.filter((a) => a.type === t);
     },
+
+    formatMasked(acc) {
+      if (acc.display) return acc.display;
+      if (acc.accountNumber) {
+        return "•••• " + acc.accountNumber.slice(-4);
+      }
+      if (acc.type === "paypal" && acc.provider) {
+        return "PayPal • " + acc.provider;
+      }
+      return acc.type.toUpperCase();
+    },
+
     openForm(m) {
       this.showForm = true;
       this.selectedMethod = m;
+      const map = {
+        visa: "Visa",
+        mastercard: "MasterCard",
+        bank: "Ngân hàng",
+        momo: "Momo",
+        zalopay: "ZaloPay",
+        paypal: "PayPal",
+        cod: "COD",
+      };
+      this.selectedMethodLabel = map[m] || "";
       this.formData = {
         cardNumber: "",
         expiry: "",
@@ -279,100 +300,82 @@ export default {
       this.formData.bank = bank.name;
       this.formData.logo = bank.logo;
     },
-    selectCOD() {
-      this.linkedAccounts.forEach((a) => (a.isDefault = false));
-      const codAcc = { type: "cod", display: "Thanh toán khi nhận hàng (COD)", isDefault: true };
-      const exist = this.linkedAccounts.find((a) => a.type === "cod");
-      if (exist) {
-        exist.isDefault = true;
-      } else {
-        this.linkedAccounts.push(codAcc);
+
+    async selectCOD() {
+      if (!this.user?.id) return;
+      try {
+        await axios.post("http://localhost:5000/api/paymethods", {
+          userId: this.user.id,
+          type: "cod",
+          display: "Thanh toán khi nhận hàng (COD)",
+          isDefault: true,
+        });
+        await this.fetchAccounts();
+      } catch (err) {
+        console.error("❌ Lỗi chọn COD:", err);
       }
-      this.selectedMethod = "cod";
-      localStorage.setItem("linkedAccounts", JSON.stringify(this.linkedAccounts));
-      // ✅ lưu phương thức thanh toán
-      localStorage.setItem("paymentMethod", "COD");
-      this.showForm = false;
     },
-    confirmLink() {
+
+    async confirmLink() {
       let display = "";
       if (this.selectedMethod === "visa" || this.selectedMethod === "mastercard") {
-        if (this.formData.cardNumber.length !== 16) return alert("❌ Số thẻ phải 16 số");
-        if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(this.formData.expiry))
-          return alert("❌ Ngày hết hạn phải MM/YY");
-        if (this.formData.cvv.length !== 3) return alert("❌ CVV phải 3 số");
-        display = this.selectedMethodLabel + " ••••" + this.formData.cardNumber.slice(-4);
+        display = this.selectedMethodLabel + " •••• " + this.formData.cardNumber.slice(-4);
       }
       if (this.selectedMethod === "bank") {
-        if (!this.formData.bank) return alert("❌ Chọn ngân hàng");
-        const len = this.formData.accountNumber.length;
-        if (len < 10 || len > 12) return alert("❌ STK 10-12 số");
-        if (!this.formData.accountName) return alert("❌ Nhập tên chủ tài khoản");
-        display = this.formData.bank + " ••••" + this.formData.accountNumber.slice(-2);
+        display = this.formData.bank + " •••• " + this.formData.accountNumber.slice(-4);
       }
       if (this.selectedMethod === "momo" || this.selectedMethod === "zalopay") {
-        if (this.formData.phone.length !== 9) return alert("❌ SĐT phải 9 số (bỏ số 0 đầu)");
-        if (!this.formData.walletName) return alert("❌ Nhập tên chủ ví");
-        display =
-          this.selectedMethodLabel +
-          " (+84)" +
-          this.formData.phone.slice(0, 3) +
-          "•••" +
-          this.formData.phone.slice(-2);
+        display = this.selectedMethodLabel + " (+84)•••" + this.formData.phone.slice(-2);
       }
       if (this.selectedMethod === "paypal") {
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.formData.paypalEmail))
-          return alert("❌ Email PayPal không hợp lệ");
         display = "PayPal • " + this.formData.paypalEmail;
       }
 
-      const newAcc = {
-        type: this.selectedMethod,
-        display,
-        logo: this.formData.logo || null,
-        isDefault: true,
-      };
-      this.linkedAccounts.forEach((a) => (a.isDefault = false));
-      this.linkedAccounts.push(newAcc);
-      this.selectedMethod = this.selectedMethod;
+      try {
+        await axios.post("http://localhost:5000/api/paymethods", {
+          userId: this.user.id,
+          type: this.selectedMethod,
+          provider: this.formData.bank || this.formData.walletName || this.formData.paypalEmail || "",
+          accountNumber: this.formData.accountNumber || this.formData.cardNumber || this.formData.phone || "",
+          expiry: this.formData.expiry,
+          display,
+          logo: this.formData.logo,
+          isDefault: true,
+        });
+        this.showForm = false;
+        await this.fetchAccounts();
+      } catch (err) {
+        console.error("❌ Lỗi lưu phương thức thanh toán:", err);
+      }
+    },
 
-      localStorage.setItem("linkedAccounts", JSON.stringify(this.linkedAccounts));
-      // ✅ lưu phương thức thanh toán chính xác
-      localStorage.setItem("paymentMethod", this.selectedMethodLabel);
-      this.showForm = false;
-    },
-    setDefaultAccount(acc) {
-      this.linkedAccounts.forEach((a) => (a.isDefault = false));
-      acc.isDefault = true;
-      this.selectedMethod = acc.type;
-      localStorage.setItem("linkedAccounts", JSON.stringify(this.linkedAccounts));
-      // ✅ cập nhật lại paymentMethod khi chọn tài khoản
-      localStorage.setItem("paymentMethod", this.selectedMethodLabel);
-    },
-    removeAccount(acc) {
-      this.linkedAccounts = this.linkedAccounts.filter((a) => a !== acc);
-      if (!this.linkedAccounts.some((a) => a.isDefault) && this.linkedAccounts.length) {
-        this.linkedAccounts[0].isDefault = true;
-        this.selectedMethod = this.linkedAccounts[0].type;
-        localStorage.setItem("paymentMethod", this.selectedMethodLabel);
+    async setDefaultAccount(acc) {
+      try {
+        await axios.put(`http://localhost:5000/api/paymethods/${acc._id}`, {
+          userId: this.user.id,
+          isDefault: true,
+        });
+        await this.fetchAccounts();
+      } catch (err) {
+        console.error("❌ Lỗi set mặc định:", err);
       }
-      if (!this.linkedAccounts.length) {
-        this.selectedMethod = null;
-        localStorage.removeItem("paymentMethod");
+    },
+
+    async removeAccount(acc) {
+      try {
+        await axios.delete(`http://localhost:5000/api/paymethods/${acc._id}`);
+        await this.fetchAccounts();
+      } catch (err) {
+        console.error("❌ Lỗi xóa phương thức:", err);
       }
-      localStorage.setItem("linkedAccounts", JSON.stringify(this.linkedAccounts));
     },
   },
-  mounted() {
-    this.fetchBanks();
-    // ✅ load lại paymentMethod khi vào
-    const pm = localStorage.getItem("paymentMethod");
-    if (pm) this.selectedMethod = pm.toLowerCase();
+  async mounted() {
+    await this.fetchBanks();
+    await this.fetchAccounts();
   },
 };
 </script>
-
-
 
 <style scoped>
 .payment-manager h3 { color:#ff6600; margin-bottom:10px; }
