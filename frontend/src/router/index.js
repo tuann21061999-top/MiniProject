@@ -23,6 +23,7 @@ import Admin from "../components/Admin.vue";
 import Admin2 from "../components/Admin2.vue";
 import AddPin from "../components/AddPin.vue";
 import Specs from "../components/Specs.vue";
+import Review from "../components/Review.vue";
 
 const routes = [
   { path: "/", name: "Home", component: Home },
@@ -60,6 +61,7 @@ const routes = [
   { path: "/admin2", name: "Admin2", component: Admin2 },
   { path: "/addpin", name: "AddPin", component: AddPin },
   { path: "/specs", name: "Specs", component: Specs },
+  { path: "/review", name: "Review", component: Review },
 ];
 
 const router = createRouter({

@@ -67,6 +67,12 @@
       </button>
     </div>
 
+    <!-- ✅ PHẦN REVIEW -->
+    <!-- ✅ THÊM điều kiện -->
+<Review v-if="phone" :phoneId="phone._id" :phoneName="phone.name" />
+
+
+
     <!-- ========== POPUP CẤU HÌNH ĐẦY ĐỦ ========== -->
     <transition name="fade">
       <div v-if="showPopup" class="popup-overlay" @click.self="closePopup">
@@ -84,10 +90,11 @@
 import axios from "axios";
 import emitter from "../eventBus";
 import Specs from "./Specs.vue";
+import Review from "./Review.vue";
 
 export default {
   name: "PhoneDetail",
-  components: { Specs },
+  components: { Specs, Review },
   data() {
     return {
       phone: null,
@@ -149,7 +156,6 @@ export default {
         "Nâu Vàng": "#d2b48c",
         "Sa Mạc": "#edc9af",
         "Lục Bảo": "#50c878",
-
       };
       return colors[name] || "#ccc";
     },
