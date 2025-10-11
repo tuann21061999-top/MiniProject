@@ -31,9 +31,7 @@
           <li v-for="item in suggestions" :key="item._id" @click="goToPhone(item)">
             <img :src="item.image" alt="product" class="suggestion-img" />
             <div class="suggestion-info">
-              <span class="suggestion-name">
-                {{ item.name || item.title || "Không có tên" }}
-              </span>
+              <span class="suggestion-name">{{ item.name || "Không có tên" }}</span>
               <span class="suggestion-price">{{ formatPrice(item.basePrice) }}</span>
             </div>
           </li>
@@ -54,7 +52,6 @@
           <router-link to="/register" class="btn-register">Đăng ký</router-link>
         </template>
         <template v-else>
-          
           <router-link
             :to="user.role === 'admin' ? '/admin' : '/profile'"
             class="user-name"
@@ -117,8 +114,7 @@ export default {
       try {
         const res = await axios.get(`http://localhost:5000/api/orders/${this.user.email}`);
         this.cartCount = res.data?.items?.length || 0;
-      } catch (err) {
-        console.error("❌ Lỗi lấy giỏ hàng:", err);
+      } catch {
         this.cartCount = 0;
       }
     },
@@ -134,53 +130,101 @@ export default {
       }
     },
 
+    /** ✳️ Khi người dùng nhập trong ô tìm kiếm */
     onInput() {
       this.showSuggestions = true;
       clearTimeout(this.debounceTimer);
-      this.debounceTimer = setTimeout(() => {
-        this.fetchSuggestions();
-      }, 200);
+      this.debounceTimer = setTimeout(() => this.fetchSuggestions(), 200);
     },
 
+    /** ✳️ Lấy danh sách gợi ý theo tên hoặc hãng */
     async fetchSuggestions() {
-      const q = this.searchQuery.trim().toLowerCase();
-      if (!q) {
-        this.suggestions = [];
-        return;
-      }
+  const q = this.searchQuery.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (!q) {
+    this.suggestions = [];
+    return;
+  }
 
-      await this.ensurePhonesCache();
+  await this.ensurePhonesCache();
 
-      // Danh sách brand phổ biến
-      const brands = ["iphone", "samsung", "xiaomi", "oppo", "vivo", "realme"];
+  // ✅ Bảng ánh xạ thương hiệu mở rộng (bao gồm Motorola, Honor, ZTE, Asus, Google, Infinix,...)
+  const brandMap = {
+    iphone: "Apple",
+    apple: "Apple",
+    samsung: "Samsung",
+    xiaomi: "Xiaomi",
+    oppo: "Oppo",
+    vivo: "Vivo",
+    realme: "Realme",
+    oneplus: "OnePlus",
+    sony: "Sony",
+    huawei: "Huawei",
+    motorola: "Motorola",
+    honor: "Honor",
+    zte: "ZTE",
+    asus: "Asus",
+    google: "Google",
+    infinix: "Infinix",
+    tecno: "Tecno",
+    lenovo: "Lenovo",
+    nokia: "Nokia",
+    meizu: "Meizu",
+  };
 
-      if (brands.includes(q)) {
-        // ✅ Nếu tìm theo brand
-        this.suggestions = this.phonesCache
-          .filter((p) => p.brand && p.brand.toLowerCase().includes(q))
-          .slice(0, 7);
-      } else {
-        // ✅ Nếu tìm theo tên sản phẩm
-        this.suggestions = this.phonesCache
-          .filter((p) => p.name && p.name.toLowerCase().includes(q))
-          .slice(0, 7);
-      }
-    },
+  // ✅ Kiểm tra xem chuỗi nhập có chứa tên hãng nào không
+  const matchedBrand = Object.keys(brandMap).find((b) => q.includes(b));
 
-    search() {
-      const q = this.searchQuery.trim().toLowerCase();
-      if (!q) return;
+  if (matchedBrand) {
+    const brandName = brandMap[matchedBrand];
+    this.suggestions = this.phonesCache
+      .filter((p) => p.brand?.toLowerCase() === brandName.toLowerCase())
+      .slice(0, 8);
+  } else {
+    // Nếu không phải hãng, tìm theo tên sản phẩm
+    this.suggestions = this.phonesCache
+      .filter((p) => p.name?.toLowerCase().includes(q))
+      .slice(0, 8);
+  }
+},
 
-      const brands = ["iphone", "samsung", "xiaomi", "oppo", "vivo", "realme"];
+search() {
+  const q = this.searchQuery.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (!q) return;
 
-      if (brands.includes(q)) {
-        this.$router.push({ path: "/phones", query: { brand: q } });
-      } else {
-        this.$router.push({ path: "/phones", query: { q } });
-      }
+  const brandMap = {
+    iphone: "Apple",
+    apple: "Apple",
+    samsung: "Samsung",
+    xiaomi: "Xiaomi",
+    oppo: "Oppo",
+    vivo: "Vivo",
+    realme: "Realme",
+    oneplus: "OnePlus",
+    sony: "Sony",
+    huawei: "Huawei",
+    motorola: "Motorola",
+    honor: "Honor",
+    zte: "ZTE",
+    asus: "Asus",
+    google: "Google",
+    infinix: "Infinix",
+    tecno: "Tecno",
+    lenovo: "Lenovo",
+    nokia: "Nokia",
+    meizu: "Meizu",
+  };
 
-      this.showSuggestions = false;
-    },
+  const matchedBrand = Object.keys(brandMap).find((b) => q.includes(b));
+
+  if (matchedBrand) {
+    const brandName = brandMap[matchedBrand];
+    this.$router.push({ path: "/phones", query: { brand: brandName } });
+  } else {
+    this.$router.push({ path: "/phones", query: { q } });
+  }
+
+  this.showSuggestions = false;
+},
 
     goToPhone(phone) {
       this.$router.push(`/phones/${phone._id}`);
@@ -192,9 +236,7 @@ export default {
     handleClickOutside(event) {
       const box = this.$refs.searchBox;
       if (!box) return;
-      if (!box.contains(event.target)) {
-        this.showSuggestions = false;
-      }
+      if (!box.contains(event.target)) this.showSuggestions = false;
     },
 
     logout() {
@@ -240,10 +282,6 @@ export default {
   margin: 0;
   padding: 0;
 }
-.nav-links li {
-  display: flex;
-  align-items: center;
-}
 .nav-links a {
   color: white;
   text-decoration: none;
@@ -270,37 +308,37 @@ export default {
   display: flex;
   align-items: center;
   background: #fff;
-  border-radius: 24px;   /* giảm radius cho gọn */
-  padding: 4px 10px;     /* nhỏ hơn */
+  border-radius: 24px;
+  padding: 4px 10px;
   border: 2px solid #ff6600;
   transition: all 0.3s;
 }
 .search-box:focus-within {
-  box-shadow: 0 0 8px rgba(255,102,0,0.5); /* hiệu ứng nhỏ hơn */
+  box-shadow: 0 0 8px rgba(255,102,0,0.5);
 }
 .search-box input {
   border: none;
   outline: none;
-  padding: 6px 10px;     /* nhỏ lại */
+  padding: 6px 10px;
   border-radius: 20px;
-  font-size: 14px;       /* chữ nhỏ hơn */
+  font-size: 14px;
   flex: 1;
 }
 .search-box button {
   background: #ff6600;
   border: none;
-  width: 28px;           /* giảm từ 34px xuống */
+  width: 28px;
   height: 28px;
   margin-left: 6px;
   border-radius: 50%;
   cursor: pointer;
   color: #fff;
-  font-size: 13px;       /* icon nhỏ lại */
+  font-size: 13px;
   transition: transform 0.2s, background 0.3s;
 }
 .search-box button:hover {
   background: #e65500;
-  transform: scale(1.08); /* hiệu ứng nhẹ hơn */
+  transform: scale(1.08);
 }
 
 /* Gợi ý sản phẩm */
@@ -412,12 +450,5 @@ export default {
 }
 .btn-logout:hover {
   background: #cc0000;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .search-box {
-    width: 220px;
-  }
 }
 </style>

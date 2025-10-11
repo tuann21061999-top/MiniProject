@@ -43,7 +43,7 @@
         </form>
         <div class="app-links">
           <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Google Play" />
-          <img src="https://upload.wikimedia.org/wikipedia/commons/6/67/Download_on_the_App_Store_Badge.svg" alt="App Store" />
+          <img src="https://digitopoly.files.wordpress.com/2016/06/app-store-logo.png" alt="App Store" />
         </div>
       </div>
     </div>
