@@ -105,7 +105,6 @@ export default {
       selectedIndex: 0,
       featuredColors: ["#ffe5e0", "#e0f2ff", "#fff2cc"],
       tilt: { x: 0, y: 0 },
-      // 🔹 Chỉ 3 danh mục chính
       categories: [
         { name: "iPhone", image: "https://cdn.tgdd.vn/Brand/1/logo-iphone-220x48.png" },
         { name: "Samsung", image: "https://cdn.tgdd.vn/Brand/1/logo-samsung-220x48.png" },
@@ -119,12 +118,42 @@ export default {
     },
   },
   methods: {
+    /** ✅ Lấy đúng 3 sản phẩm nổi bật từ MongoDB */
     async fetchFeaturedPhones() {
       try {
         const res = await axios.get("http://localhost:5000/api/phones");
-        const all = res.data;
-        // Lấy 3 sản phẩm nổi bật đầu tiên
-        this.featuredPhones = all.slice(0, 3).map((p) => ({
+        const all = res.data || [];
+
+        // 🔹 Danh sách tên sản phẩm nổi bật cần lấy
+        const highlightNames = [
+          "Xiaomi 15 Ultra",
+          "iPhone 17 Pro Max",
+          "Samsung Galaxy S25 Ultra",
+        ];
+
+        // 🔹 Lọc theo tên (không phân biệt hoa thường)
+        const featured = all.filter((p) =>
+          highlightNames.some(
+            (name) => p.name?.toLowerCase().includes(name.toLowerCase())
+          )
+        );
+
+        // 🔹 Nếu trong DB chưa có đủ, lấy tạm 3 cái đầu (fallback)
+        this.featuredPhones =
+          featured.length >= 3
+            ? featured
+            : all.slice(0, 3).map((p) => ({
+                ...p,
+                specs: p.specs || {
+                  chip: "Snapdragon 8 Gen 3",
+                  display: "AMOLED 6.7 inch 120Hz",
+                  camera: "200MP + 50MP + 10MP",
+                  battery: "5000mAh sạc nhanh 45W",
+                },
+              }));
+
+        // 🔹 Đảm bảo có field specs để hiển thị
+        this.featuredPhones = this.featuredPhones.map((p) => ({
           ...p,
           specs: p.specs || {
             chip: "Snapdragon 8 Gen 3",
@@ -137,6 +166,7 @@ export default {
         console.error("❌ Lỗi load phones:", err);
       }
     },
+
     selectProduct(i) {
       this.selectedIndex = i;
     },
@@ -185,7 +215,6 @@ export default {
       }).format(v);
     },
     goToCategory(name) {
-      // 🔹 Map iPhone -> Apple để khớp brand trong Mongo
       const brandMap = { iPhone: "Apple" };
       const brand = brandMap[name] || name;
       this.$router.push({ path: "/phones", query: { brand } });
