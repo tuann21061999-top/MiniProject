@@ -21,7 +21,8 @@ import TradeInPromo from "../components/TradeInPromo.vue";
 import AddressManager from "../components/AddressManager.vue";
 import Admin from "../components/Admin.vue";
 import Admin2 from "../components/Admin2.vue";
-
+import AddPin from "../components/AddPin.vue";
+import Specs from "../components/Specs.vue";
 
 const routes = [
   { path: "/", name: "Home", component: Home },
@@ -57,6 +58,8 @@ const routes = [
   { path: "/addressmanager", name: "AddressManager", component: AddressManager },
   { path: "/admin", name: "Admin", component: Admin },
   { path: "/admin2", name: "Admin2", component: Admin2 },
+  { path: "/addpin", name: "AddPin", component: AddPin },
+  { path: "/specs", name: "Specs", component: Specs },
 ];
 
 const router = createRouter({

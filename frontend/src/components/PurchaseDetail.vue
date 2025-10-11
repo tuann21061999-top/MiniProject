@@ -5,8 +5,16 @@
     <!-- Danh sách sản phẩm -->
     <div class="section card">
       <h3>🛍️ Sản phẩm</h3>
-      <div v-if="items.length" v-for="(item, idx) in items" :key="idx" class="purchase-item">
-        <img :src="item.image || 'https://via.placeholder.com/80'" class="item-img" />
+      <div
+        v-if="items.length"
+        v-for="(item, idx) in items"
+        :key="idx"
+        class="purchase-item"
+      >
+        <img
+          :src="item.image || 'https://via.placeholder.com/80'"
+          class="item-img"
+        />
         <div class="item-info">
           <h3>{{ item.name }}</h3>
           <p>Màu: {{ item.color }} | Bộ nhớ: {{ item.storage }}</p>
@@ -37,7 +45,9 @@
       <div v-else>
         <p class="empty">Chưa có địa chỉ nào. Vào trang Hồ sơ để thêm nhé.</p>
       </div>
-      <button class="btn-add" @click="$router.push('/profile')">➕ Quản lý địa chỉ</button>
+      <button class="btn-add" @click="$router.push('/profile')">
+        ➕ Quản lý địa chỉ
+      </button>
     </div>
 
     <!-- Thanh toán -->
@@ -56,17 +66,33 @@
           <span v-if="pm.isDefault" class="default-flag">Mặc định</span>
         </div>
       </div>
-      <div v-else class="empty">Chưa có phương thức thanh toán. Vào trang Hồ sơ để thêm.</div>
-      <button class="btn-add" @click="$router.push('/profile')">➕ Quản lý thanh toán</button>
+      <div v-else class="empty">
+        Chưa có phương thức thanh toán. Vào trang Hồ sơ để thêm.
+      </div>
+      <button class="btn-add" @click="$router.push('/profile')">
+        ➕ Quản lý thanh toán
+      </button>
     </div>
 
     <!-- Vận chuyển -->
     <div class="section card" v-if="!purchaseId">
       <h3>🚚 Chọn dịch vụ vận chuyển</h3>
       <div class="radio-group">
-        <label v-for="opt in shippingOptions" :key="opt.name" class="radio-item">
-          <input type="radio" :value="opt.name" v-model="selectedShipping" @change="recalculate" />
-          <span>{{ opt.name }} <i v-if="opt.fee > 0">( +{{ formatPrice(opt.fee) }})</i></span>
+        <label
+          v-for="opt in shippingOptions"
+          :key="opt.name"
+          class="radio-item"
+        >
+          <input
+            type="radio"
+            :value="opt.name"
+            v-model="selectedShipping"
+            @change="recalculate"
+          />
+          <span>
+            {{ opt.name }}
+            <i v-if="opt.fee > 0">( +{{ formatPrice(opt.fee) }})</i>
+          </span>
         </label>
       </div>
     </div>
@@ -75,9 +101,21 @@
     <div class="section card" v-if="!purchaseId">
       <h3>🛡️ Chọn gói bảo hành</h3>
       <div class="radio-group">
-        <label v-for="opt in warrantyOptions" :key="opt.name" class="radio-item">
-          <input type="radio" :value="opt.name" v-model="selectedWarranty" @change="recalculate" />
-          <span>{{ opt.name }} <i v-if="opt.fee > 0">( +{{ formatPrice(opt.fee) }})</i></span>
+        <label
+          v-for="opt in warrantyOptions"
+          :key="opt.name"
+          class="radio-item"
+        >
+          <input
+            type="radio"
+            :value="opt.name"
+            v-model="selectedWarranty"
+            @change="recalculate"
+          />
+          <span>
+            {{ opt.name }}
+            <i v-if="opt.fee > 0">( +{{ formatPrice(opt.fee) }})</i>
+          </span>
         </label>
       </div>
     </div>
@@ -125,10 +163,16 @@
 
     <!-- Xác nhận -->
     <div class="action-box" v-if="!purchaseId">
-      <button class="confirm-btn" :disabled="!canConfirm" @click="confirmPurchase">
+      <button
+        class="confirm-btn"
+        :disabled="!canConfirm"
+        @click="confirmPurchase"
+      >
         ✅ Xác nhận đơn hàng
       </button>
-      <p v-if="!canConfirm" class="hint">(Chọn địa chỉ & phương thức thanh toán trước khi xác nhận)</p>
+      <p v-if="!canConfirm" class="hint">
+        (Chọn địa chỉ & phương thức thanh toán trước khi xác nhận)
+      </p>
     </div>
   </div>
 
@@ -137,6 +181,7 @@
 
 <script>
 import axios from "axios";
+import Swal from "sweetalert2";
 
 export default {
   name: "PurchaseDetail",
@@ -170,8 +215,12 @@ export default {
       methodFee: 0,
       warrantyFee: 0,
       grandTotal: 0,
+
+      pinAttempts: 0,
+      pinLockedUntil: null,
     };
   },
+
   computed: {
     canConfirm() {
       return this.items.length > 0 && this.selectedAddressIndex !== null && !!this.selectedPayId;
@@ -184,21 +233,20 @@ export default {
       return this.selectedAddress?.region || null;
     },
     selectedPay() {
-      return this.payMethods.find(p => p._id === this.selectedPayId) || null;
+      return this.payMethods.find((p) => p._id === this.selectedPayId) || null;
     },
     selectedPayType() {
       return this.selectedPay ? this.normalizeType(this.selectedPay.type) : null;
     },
     isCODSelected() {
-      // Nhận diện COD (an toàn cho nhiều cách ghi)
       const t = this.selectedPayType || "";
       return /(cod|cash|tiền mặt)/i.test(t);
     },
     previewStatus() {
-      // 🔥 CHỈ COD = pending, còn lại = paid
       return this.isCODSelected ? "pending" : "paid";
     },
   },
+
   methods: {
     normalizeType(t) {
       return String(t || "").trim().toUpperCase();
@@ -209,13 +257,13 @@ export default {
         this.ready = true;
         return;
       }
+
       const cartData = JSON.parse(localStorage.getItem("cart")) || {};
       this.items = cartData.items || [];
       this.itemsTotal = cartData.total || 0;
 
       await Promise.all([this.fetchAddresses(), this.fetchPayMethods()]);
 
-      // Chọn mặc định: địa chỉ default và PM default hoặc phần tử đầu
       const defAddrIndex = this.addresses.findIndex((a) => a.isDefault);
       if (defAddrIndex >= 0) this.selectedAddressIndex = defAddrIndex;
 
@@ -239,16 +287,10 @@ export default {
       try {
         const res = await axios.get(`http://localhost:5000/api/paymethods/${this.user.id}`);
         const list = res.data || [];
-
-        // Thêm COD nếu chưa có
-        const hasCOD = list.some(m => this.normalizeType(m.type) === "COD");
-        if (!hasCOD) {
-          list.unshift({ _id: "cod", type: "COD" });
-        }
-
+        const hasCOD = list.some((m) => this.normalizeType(m.type) === "COD");
+        if (!hasCOD) list.unshift({ _id: "cod", type: "COD" });
         this.payMethods = list;
       } catch {
-        // Nếu lỗi API, vẫn cho COD để đặt hàng
         this.payMethods = [{ _id: "cod", type: "COD", isDefault: true }];
       }
     },
@@ -261,66 +303,143 @@ export default {
     recalculate() {
       const region = this.selectedAddress?.region || null;
       this.regionFee =
-        region === "Miền Nam" ? 10000 :
-        region === "Miền Trung" ? 20000 :
-        region === "Miền Bắc" ? 30000 : 0;
+        region === "Miền Nam"
+          ? 10000
+          : region === "Miền Trung"
+          ? 20000
+          : region === "Miền Bắc"
+          ? 30000
+          : 0;
 
-      const shipping = this.shippingOptions.find(opt => opt.name === this.selectedShipping);
+      const shipping = this.shippingOptions.find((opt) => opt.name === this.selectedShipping);
       this.methodFee = shipping ? shipping.fee : 0;
 
-      const warranty = this.warrantyOptions.find(opt => opt.name === this.selectedWarranty);
+      const warranty = this.warrantyOptions.find((opt) => opt.name === this.selectedWarranty);
       this.warrantyFee = warranty ? warranty.fee : 0;
 
       this.grandTotal = this.itemsTotal + this.regionFee + this.methodFee + this.warrantyFee;
     },
 
     formatPrice(v) {
-      return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v || 0);
+      return new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+      }).format(v || 0);
     },
 
     formatMasked(pm) {
-      if (pm.accountNumber) return this.normalizeType(pm.type) + " ••••" + pm.accountNumber.slice(-4);
+      if (pm.accountNumber)
+        return this.normalizeType(pm.type) + " ••••" + pm.accountNumber.slice(-4);
       return this.normalizeType(pm.type);
     },
 
     async confirmPurchase() {
       if (!this.canConfirm) {
-        return alert("Vui lòng chọn địa chỉ và phương thức thanh toán trước!");
+        return Swal.fire(
+          "⚠️ Thiếu thông tin",
+          "Vui lòng chọn địa chỉ và phương thức thanh toán trước!",
+          "warning"
+        );
       }
+
+      const paymentMethod = this.selectedPayType || "COD";
+      const status = this.isCODSelected ? "pending" : "paid";
+
       try {
-        const paymentMethod = this.selectedPayType || "COD";
-        // ✅ CHỈ COD = pending, CÒN LẠI = paid (ghi rõ vào Mongo qua payload.status)
-        const status = this.isCODSelected ? "pending" : "paid";
+        if (this.isCODSelected) return this.processPurchase(paymentMethod, status);
 
-        const payload = {
+        if (this.pinLockedUntil && Date.now() < this.pinLockedUntil) {
+          const remain = Math.ceil((this.pinLockedUntil - Date.now()) / 60000);
+          return Swal.fire(
+            "🚫 Tạm khóa",
+            `Bạn đã nhập sai quá nhiều lần. Vui lòng thử lại sau ${remain} phút.`,
+            "error"
+          );
+        }
+
+        const check = await axios.get(`http://localhost:5000/api/pins/${this.user.email}`);
+        if (!check.data?.hasPin) {
+          const res = await Swal.fire({
+            title: "⚠️ Chưa có mã PIN",
+            text: "Bạn cần tạo mã PIN để thanh toán online. Chuyển đến trang Hồ sơ?",
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonText: "Đến Hồ sơ",
+            cancelButtonText: "Hủy",
+          });
+          if (res.isConfirmed) this.$router.push("/profile");
+          return;
+        }
+
+        const { value: pinValue } = await Swal.fire({
+          title: "🔒 Nhập mã PIN thanh toán",
+          input: "password",
+          inputPlaceholder: "Nhập 4–6 chữ số",
+          inputAttributes: { maxlength: 6, minlength: 4 },
+          showCancelButton: true,
+          confirmButtonText: "Xác nhận",
+          cancelButtonText: "Hủy",
+        });
+
+        if (!pinValue)
+          return Swal.fire("❌ Hủy", "Bạn đã hủy xác nhận thanh toán.", "info");
+
+        const verify = await axios.post("http://localhost:5000/api/pins/verify", {
           email: this.user.email,
-          items: this.items,
-          total: this.grandTotal,
-          fullName: this.selectedAddress?.fullName,
-          phone: this.selectedAddress?.phone,
-          shippingAddress: this.selectedAddress?.street,
-          province: this.selectedAddress?.province,
-          region: this.selectedAddress?.region,
-          shippingMethod: this.selectedShipping,
-          paymentMethod,
-          warranty: this.selectedWarranty,
-          status, // 👈 Lưu đúng trạng thái
-        };
+          pin: pinValue,
+        });
 
+        if (!verify.data?.valid) {
+          this.pinAttempts++;
+          if (this.pinAttempts >= 5) {
+            this.pinLockedUntil = Date.now() + 5 * 60 * 1000;
+            this.pinAttempts = 0;
+            return Swal.fire("🚫 Khóa tạm thời", "Bạn nhập sai 5 lần. Khóa 5 phút!", "error");
+          }
+          return Swal.fire("❌ Sai PIN", `Mã PIN không chính xác (${this.pinAttempts}/5)`, "error");
+        }
+
+        this.pinAttempts = 0;
+        this.pinLockedUntil = null;
+        await this.processPurchase(paymentMethod, status);
+      } catch (err) {
+        console.error("❌ Lỗi xác thực PIN:", err);
+        Swal.fire("Lỗi", "Không thể xác thực mã PIN. Vui lòng thử lại sau.", "error");
+      }
+    },
+
+    async processPurchase(paymentMethod, status) {
+      const payload = {
+        email: this.user.email,
+        items: this.items,
+        total: this.grandTotal,
+        fullName: this.selectedAddress?.fullName,
+        phone: this.selectedAddress?.phone,
+        shippingAddress: this.selectedAddress?.street,
+        province: this.selectedAddress?.province,
+        region: this.selectedAddress?.region,
+        shippingMethod: this.selectedShipping,
+        paymentMethod,
+        warranty: this.selectedWarranty,
+        status,
+      };
+
+      try {
         const res = await axios.post("http://localhost:5000/api/purchases/checkout", payload);
-
         if (res.data?.success) {
           localStorage.removeItem("cart");
-          alert("✅ Đặt hàng thành công!");
+          await Swal.fire("✅ Thành công!", "Đơn hàng của bạn đã được tạo!", "success");
           this.$router.push("/profile");
         } else {
-          alert("❌ Không thể tạo đơn, vui lòng thử lại.");
+          Swal.fire("❌ Thất bại", "Không thể tạo đơn, vui lòng thử lại.", "error");
         }
       } catch (err) {
-        console.error("❌ Lỗi xác nhận đơn:", err);
+        console.error("❌ Lỗi xử lý đơn hàng:", err);
+        Swal.fire("Lỗi", "Không thể tạo đơn hàng. Thử lại sau.", "error");
       }
     },
   },
+
   async mounted() {
     await this.init();
   },

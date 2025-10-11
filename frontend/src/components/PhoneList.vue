@@ -5,7 +5,7 @@
       <aside class="filters">
         <h3>Bộ lọc</h3>
         <div class="filters-content">
-          <!-- HÃNG -->
+          <!-- Hãng -->
           <div class="filter-section">
             <div class="filter-header" @click="toggleSection('brand')">
               <b>Hãng</b>
@@ -20,7 +20,7 @@
             </transition>
           </div>
 
-          <!-- GIÁ -->
+          <!-- Giá -->
           <div class="filter-section">
             <div class="filter-header" @click="toggleSection('price')">
               <b>Giá</b>
@@ -39,7 +39,7 @@
             </transition>
           </div>
 
-          <!-- MÀU SẮC -->
+          <!-- Màu sắc -->
           <div class="filter-section">
             <div class="filter-header" @click="toggleSection('color')">
               <b>Màu sắc</b>
@@ -54,14 +54,14 @@
             </transition>
           </div>
 
-          <!-- BỘ NHỚ -->
+          <!-- Bộ nhớ -->
           <div class="filter-section">
             <div class="filter-header" @click="toggleSection('storage')">
               <b>Bộ nhớ</b>
               <span>{{ openSections.storage ? "▼" : "▶" }}</span>
             </div>
             <transition name="slide">
-              <div v-show="openSections.storage" class="filter-body wide">
+              <div v-show="openSections.storage" class="filter-body">
                 <label v-for="storage in storages" :key="storage">
                   <input type="checkbox" :value="storage" v-model="selectedStorages" /> {{ storage }}
                 </label>
@@ -69,7 +69,7 @@
             </transition>
           </div>
 
-          <!-- PIN -->
+          <!-- Pin -->
           <div class="filter-section">
             <div class="filter-header" @click="toggleSection('battery')">
               <b>Pin (mAh)</b>
@@ -78,7 +78,7 @@
             <transition name="slide">
               <div v-show="openSections.battery" class="filter-body">
                 <input type="number" v-model.number="minBattery" placeholder="Từ" />
-                <input type="number" v-model.number="maxBattery" placeholder="Đến" style="margin-top:6px;" />
+                <input type="number" v-model.number="maxBattery" placeholder="Đến" />
               </div>
             </transition>
           </div>
@@ -98,24 +98,7 @@
             </transition>
           </div>
 
-          <!-- SẮP XẾP -->
-          <div class="filter-section">
-            <div class="filter-header" @click="toggleSection('sort')">
-              <b>Sắp xếp theo giá</b>
-              <span>{{ openSections.sort ? "▼" : "▶" }}</span>
-            </div>
-            <transition name="slide">
-              <div v-show="openSections.sort" class="filter-body">
-                <select v-model="sortOrder">
-                  <option value="">Mặc định</option>
-                  <option value="asc">Giá tăng dần</option>
-                  <option value="desc">Giá giảm dần</option>
-                </select>
-              </div>
-            </transition>
-          </div>
-
-          <!-- NÚT LỌC -->
+          <!-- Nút lọc -->
           <div class="filter-actions">
             <button class="filter-btn" @click="applyFilter">Lọc</button>
             <button class="reset-btn" @click="resetFilter">Reset</button>
@@ -125,9 +108,7 @@
 
       <!-- Danh sách điện thoại -->
       <main class="phone-list">
-        <h2>
-          {{ $route.query.brand ? `Danh sách ${$route.query.brand}` : "Danh sách điện thoại" }}
-        </h2>
+        <h2>Danh sách điện thoại</h2>
         <div class="grid">
           <router-link
             v-for="phone in filteredAndSortedPhones"
@@ -138,14 +119,16 @@
             <img :src="phone.image" alt="phone image" />
             <h4>{{ phone.name }}</h4>
             <p><b>Hãng:</b> {{ phone.brand }}</p>
-            <p>{{ phone.description }}</p>
             <p class="price">{{ formatPrice(phone.basePrice) }}</p>
           </router-link>
+        </div>
+
+        <div v-if="!filteredAndSortedPhones.length" class="no-result">
+          <p>Không có sản phẩm nào phù hợp với bộ lọc.</p>
         </div>
       </main>
     </div>
 
-    <!-- Footer -->
     <Footer />
   </div>
 </template>
@@ -179,7 +162,6 @@ export default {
         storage: false,
         battery: false,
         sim: false,
-        sort: false,
       },
     };
   },
@@ -192,28 +174,14 @@ export default {
     },
   },
   methods: {
-    mapBrand(name) {
-      const mapping = { iPhone: "Apple" };
-      return mapping[name] || name;
-    },
     async fetchPhones() {
       try {
         const res = await axios.get("http://localhost:5000/api/phones");
         this.allPhones = res.data;
+        this.displayedPhones = [...this.allPhones];
 
         const brandSet = new Set(this.allPhones.map((p) => p.brand));
         this.brands = Array.from(brandSet);
-
-        const queryBrand = this.$route.query.brand;
-        if (queryBrand) {
-          const mappedBrand = this.mapBrand(queryBrand);
-          this.displayedPhones = this.allPhones.filter(
-            (p) => p.brand.toLowerCase() === mappedBrand.toLowerCase()
-          );
-          this.selectedBrands = [mappedBrand];
-        } else {
-          this.displayedPhones = [...this.allPhones];
-        }
 
         const storageSet = new Set();
         this.allPhones.forEach((p) => {
@@ -221,27 +189,26 @@ export default {
         });
         this.storages = [...storageSet];
       } catch (err) {
-        console.error(err);
+        console.error("❌ fetchPhones error:", err);
       }
     },
     applyFilter() {
       this.displayedPhones = this.allPhones.filter((phone) => {
-        if (this.selectedBrands.length && !this.selectedBrands.includes(phone.brand))
-          return false;
+        if (this.selectedBrands.length && !this.selectedBrands.includes(phone.brand)) return false;
 
         if (this.selectedPriceRange) {
           const [min, max] = this.selectedPriceRange.split("-").map(Number);
           if (phone.basePrice < min || phone.basePrice > max) return false;
         }
 
-        if (this.selectedColors.length && phone.colors && phone.colors.length) {
+        if (this.selectedColors.length && phone.colors?.length) {
           const hasColor = phone.colors.some((c) =>
             this.selectedColors.includes(c.name || c)
           );
           if (!hasColor) return false;
         }
 
-        if (this.selectedStorages.length && phone.storages && phone.storages.length) {
+        if (this.selectedStorages.length && phone.storages?.length) {
           const hasStorage = phone.storages.some((s) =>
             this.selectedStorages.includes(s.size || s)
           );
@@ -250,7 +217,6 @@ export default {
 
         if (this.minBattery && phone.battery < this.minBattery) return false;
         if (this.maxBattery && phone.battery > this.maxBattery) return false;
-
         if (this.selectedSim.length && !this.selectedSim.includes(phone.sim)) return false;
 
         return true;
@@ -272,15 +238,6 @@ export default {
     },
     toggleSection(s) {
       this.openSections[s] = !this.openSections[s];
-    },
-  },
-  watch: {
-    "$route.query.brand"(newBrand) {
-      const mapped = this.mapBrand(newBrand);
-      this.displayedPhones = this.allPhones.filter(
-        (p) => p.brand.toLowerCase() === mapped.toLowerCase()
-      );
-      this.selectedBrands = [mapped];
     },
   },
   mounted() {

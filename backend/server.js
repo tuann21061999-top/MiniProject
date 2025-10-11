@@ -12,6 +12,8 @@ const purchasesRoute = require("./routes/purchasesRoutes.js");
 const addressRoutes = require("./routes/addressRoutes.js");
 const payMethodRoutes = require("./routes/payMethodRoutes.js");
 const statsRoutes = require("./routes/statsRoutes.js");
+const Pin = require("./models/pin.js");
+const Specs = require("./models/specs.js");
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -34,7 +36,8 @@ app.use("/api/purchases", purchasesRoute);
 app.use("/api/addresses", addressRoutes);
 app.use("/api/paymethods", payMethodRoutes);
 app.use("/api/stats", statsRoutes);
-
+app.use("/api/pins", require("./routes/pinRoutes"));
+app.use("/api/specs", require("./routes/specsRoutes"));
 
 
 // Server

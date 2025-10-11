@@ -2,33 +2,31 @@ const express = require("express");
 const router = express.Router();
 const Phone = require("../models/Phones.js");
 
-// 📌 Tìm kiếm điện thoại nâng cao (đặt trước /:id)
+// 🔍 Tìm kiếm điện thoại nâng cao
 router.get("/search", async (req, res) => {
   try {
     const { q, batteryMin, batteryMax, sim, storage } = req.query;
     let query = {};
 
-    // 🔍 Tìm theo tên hoặc mô tả
+    // Tìm theo tên hoặc mô tả
     if (q) {
       query.$or = [
         { name: { $regex: q, $options: "i" } },
-        { description: { $regex: q, $options: "i" } }
+        { description: { $regex: q, $options: "i" } },
       ];
     }
 
-    // 🔍 Tìm theo pin
+    // Tìm theo dung lượng pin
     if (batteryMin || batteryMax) {
       query.battery = {};
       if (batteryMin) query.battery.$gte = Number(batteryMin);
       if (batteryMax) query.battery.$lte = Number(batteryMax);
     }
 
-    // 🔍 Tìm theo SIM
-    if (sim) {
-      query.sim = sim; // "1 SIM" | "2 SIM" | "eSIM"
-    }
+    // Tìm theo SIM
+    if (sim) query.sim = sim;
 
-    // 🔍 Tìm theo bộ nhớ trong
+    // Tìm theo bộ nhớ trong
     if (storage) {
       query["storages.size"] = { $in: Array.isArray(storage) ? storage : [storage] };
     }
@@ -41,20 +39,20 @@ router.get("/search", async (req, res) => {
   }
 });
 
-// 📌 Lấy danh sách tất cả điện thoại
+// 📱 Lấy danh sách tất cả điện thoại
 router.get("/", async (req, res) => {
   try {
-    const phones = await Phone.find();
+    const phones = await Phone.find().populate("specs"); // ✅ Quan trọng: populate specs luôn
     res.json(phones);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// 📌 Lấy chi tiết điện thoại theo id
-router.get("/:id", async (req, res) => {
+// 🔎 Lấy điện thoại theo tên (nếu cần dùng đường dẫn /name/:name)
+router.get("/name/:name", async (req, res) => {
   try {
-    const phone = await Phone.findById(req.params.id);
+    const phone = await Phone.findOne({ name: req.params.name }).populate("specs");
     if (!phone) return res.status(404).json({ error: "Không tìm thấy sản phẩm" });
     res.json(phone);
   } catch (err) {
@@ -62,7 +60,17 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// 📌 Thêm mới 1 điện thoại
+router.get("/:id", async (req, res) => {
+  try {
+    const phone = await Phone.findById(req.params.id).populate("specs");
+    if (!phone) return res.status(404).json({ error: "Không tìm thấy sản phẩm" });
+    res.json(phone);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ➕ Thêm mới một điện thoại
 router.post("/", async (req, res) => {
   try {
     const newPhone = new Phone(req.body);
