@@ -62,6 +62,9 @@ const routes = [
   { path: "/addpin", name: "AddPin", component: AddPin },
   { path: "/specs", name: "Specs", component: Specs },
   { path: "/review", name: "Review", component: Review },
+  { path: "/admin/potential-customers",name: "AdminPotentialCustomers",component: () => import("../components/AdminPotentialCustomers.vue"),},
+  { path: "/admin/top-products",name: "AdminTopProducts",component: () => import("../components/AdminTopProducts.vue"),},
+,
 ];
 
 const router = createRouter({
