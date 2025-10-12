@@ -81,4 +81,25 @@ router.post("/", async (req, res) => {
   }
 });
 
+// 📝 Cập nhật sản phẩm
+router.put("/:id", async (req, res) => {
+  try {
+    const updatedPhone = await Phone.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(updatedPhone);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// 🗑️ Xóa sản phẩm
+router.delete("/:id", async (req, res) => {
+  try {
+    await Phone.findByIdAndDelete(req.params.id);
+    res.json({ message: "Đã xóa sản phẩm" });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+
 module.exports = router;
