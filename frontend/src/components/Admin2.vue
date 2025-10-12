@@ -23,7 +23,7 @@
 </template>
 
 <script>
-import AdminSideBar from "./AdminSideBar.vue"; // Đường dẫn chính xác theo dự án của bạn
+import AdminSideBar from "./AdminSideBar.vue"; // Đường dẫn chính xác abc theo dự án của bạn
 import Chart from "chart.js/auto";
 
 export default {
