@@ -1,4 +1,7 @@
 <template>
+  <keep-alive include="PhoneList">
+    <router-view />
+  </keep-alive>
   <div class="page-wrapper">
     <div class="phone-page">
       <!-- Sidebar bộ lọc -->
@@ -175,23 +178,34 @@ export default {
   },
   methods: {
     async fetchPhones() {
-      try {
-        const res = await axios.get("http://localhost:5000/api/phones");
-        this.allPhones = res.data;
-        this.displayedPhones = [...this.allPhones];
+  try {
+    const res = await axios.get("http://localhost:5000/api/phones");
+    this.allPhones = res.data || [];
 
-        const brandSet = new Set(this.allPhones.map((p) => p.brand));
-        this.brands = Array.from(brandSet);
+    // ✅ Lấy brand từ query URL (vd: /phones?brand=Samsung)
+    const brandQuery = this.$route.query.brand;
+    if (brandQuery) {
+      this.displayedPhones = this.allPhones.filter(
+        (p) => p.brand && p.brand.toLowerCase().includes(brandQuery.toLowerCase())
+      );
+    } else {
+      this.displayedPhones = [...this.allPhones];
+    }
 
-        const storageSet = new Set();
-        this.allPhones.forEach((p) => {
-          if (p.storages) p.storages.forEach((s) => storageSet.add(s.size));
-        });
-        this.storages = [...storageSet];
-      } catch (err) {
-        console.error("❌ fetchPhones error:", err);
-      }
-    },
+    // 🔹 Lấy danh sách brand duy nhất
+    const brandSet = new Set(this.allPhones.map((p) => p.brand));
+    this.brands = Array.from(brandSet);
+
+    // 🔹 Lấy danh sách dung lượng duy nhất
+    const storageSet = new Set();
+    this.allPhones.forEach((p) => {
+      if (p.storages) p.storages.forEach((s) => storageSet.add(s.size));
+    });
+    this.storages = [...storageSet];
+  } catch (err) {
+    console.error("❌ fetchPhones error:", err);
+  }
+},
     applyFilter() {
       this.displayedPhones = this.allPhones.filter((phone) => {
         if (this.selectedBrands.length && !this.selectedBrands.includes(phone.brand)) return false;
@@ -242,7 +256,27 @@ export default {
   },
   mounted() {
     this.fetchPhones();
+    // 🔹 Khi quay lại từ PhoneDetail, khôi phục vị trí cuộn
+    const savedScroll = sessionStorage.getItem("phoneScroll");
+    if (savedScroll) {
+      setTimeout(() => window.scrollTo(0, parseInt(savedScroll)), 100);
+    }
   },
+
+  beforeRouteLeave(to, from, next) {
+    // 🔹 Lưu lại vị trí cuộn trước khi rời trang
+    sessionStorage.setItem("phoneScroll", window.scrollY);
+    next();
+  },
+  watch: {
+  '$route.query.brand': {
+    handler() {
+      this.fetchPhones();
+    },
+    immediate: true
+  }
+}
+
 };
 </script>
 

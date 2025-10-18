@@ -64,12 +64,23 @@ const routes = [
   { path: "/review", name: "Review", component: Review },
   { path: "/admin/potential-customers",name: "AdminPotentialCustomers",component: () => import("../components/AdminPotentialCustomers.vue"),},
   { path: "/admin/top-products",name: "AdminTopProducts",component: () => import("../components/AdminTopProducts.vue"),},
+  { path: "/admin/profit",name: "AdminProfit",component: () => import("../components/AdminProfit.vue"),},
 ,
 ];
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
+  scrollBehavior(to, from, savedPosition) {
+    // ✅ Khi quay lại, giữ nguyên vị trí cuộn trước đó
+    if (savedPosition) {
+      return savedPosition;
+    } else {
+      // Khi điều hướng mới, cuộn lên đầu
+      return { top: 0 };
+    }
+  },
 });
+
 
 export default router;

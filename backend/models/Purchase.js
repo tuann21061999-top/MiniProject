@@ -7,11 +7,13 @@ const purchaseSchema = new mongoose.Schema(
     // 🛍️ Thông tin sản phẩm
     items: [
       {
+        phoneId: { type: mongoose.Schema.Types.ObjectId, ref: "Phone" },
         name: String,
         color: String,
         storage: String,
         quantity: Number,
         price: Number,
+        importPrice: Number,
         image: String,
       },
     ],

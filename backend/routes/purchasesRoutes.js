@@ -1,9 +1,9 @@
 const express = require("express");
 const Purchase = require("../models/Purchase");
+const Phone = require("../models/Phones"); // ✅ thêm dòng này
 const Address = require("../models/Address");
 const router = express.Router();
 
-/* ====== 📌 Tạo đơn hàng (checkout) ====== */
 /* ====== 📌 Tạo đơn hàng (checkout) ====== */
 router.post("/checkout", async (req, res) => {
   try {
@@ -19,39 +19,60 @@ router.post("/checkout", async (req, res) => {
       shippingMethod,
       paymentMethod,
       warranty,
-      status, // 👈 nhận status từ frontend
+      status,
     } = req.body;
 
-    // ✅ Tính phí theo region / phương thức / bảo hành
+    const itemsWithImport = await Promise.all(
+      items.map(async (item) => {
+        const foundPhone = await Phone.findOne({ _id: item.phoneId }).lean();
+
+        // ✅ Tìm đúng phiên bản bộ nhớ đã chọn
+        const matchedStorage = foundPhone?.storages?.find(
+          (s) => s.size === item.storage
+        );
+
+        const importPrice = matchedStorage?.importPrice || 0;
+
+        return {
+          ...item,
+          importPrice, // ✅ lưu đúng giá nhập của phiên bản
+        };
+      })
+);
+
+
+    // ✅ Tính phí khu vực / phương thức / bảo hành
     let regionFee = 0;
     if (region === "Miền Nam") regionFee = 10000;
     else if (region === "Miền Trung") regionFee = 20000;
     else if (region === "Miền Bắc") regionFee = 30000;
 
     let methodFee = 0;
-    if (shippingMethod === "Viettel Post") methodFee = 10000;
-    else if (shippingMethod === "Giao Hàng Nhanh") methodFee = 20000;
+    if (shippingMethod === "Giao Hàng Tiết Kiệm") methodFee = 10000;
+    else if (shippingMethod === "Viettel Post") methodFee = 20000;
+    else if (shippingMethod === "Giao Hàng Nhanh") methodFee = 30000;
 
     let warrantyFee = 0;
     if (warranty === "Bảo hành vàng") warrantyFee = 500000;
     else if (warranty === "Bảo hành VIP") warrantyFee = 1000000;
 
+    // ✅ Tạo đơn hàng
     const purchase = new Purchase({
       email,
-      items,
+      items: itemsWithImport, // ✅ dùng dữ liệu đã có importPrice
       total,
       fullName,
       phone,
       shippingAddress,
       province,
-      region, // ✅ copy từ địa chỉ khi user chọn
+      region,
       shippingMethod,
       paymentMethod,
       warranty,
       regionFee,
       methodFee,
       warrantyFee,
-      status, // ✅ lưu trạng thái (pending cho COD, paid cho online)
+      status,
     });
 
     await purchase.save();
@@ -61,7 +82,6 @@ router.post("/checkout", async (req, res) => {
     res.status(500).json({ success: false, error: "Server error" });
   }
 });
-
 
 /* ====== 📌 Lấy tất cả đơn theo email user ====== */
 router.get("/user/:email", async (req, res) => {

@@ -145,18 +145,18 @@ export default {
             timeline[timeline.length - 1] = "Giao không thành công";
           }
 
-          const { regionFee, methodFee, warrantyFee } = this.computeFees(o);
+          const { regionFee, methodFee, warrantyFee } = this.normalizeFees(o);
+            return {
+              ...o,
+              regionFee,
+              methodFee,
+              warrantyFee,
+              timeline,
+              currentStep: savedState.currentStep ?? 0,
+              nextUpdateTime: savedState.nextUpdateTime || Date.now() + this.randomDelay(),
+              failed: savedState.failed || false,
+            };
 
-          return {
-            ...o,
-            regionFee,
-            methodFee,
-            warrantyFee,
-            timeline,
-            currentStep: savedState.currentStep ?? 0,
-            nextUpdateTime: savedState.nextUpdateTime || Date.now() + this.randomDelay(),
-            failed: savedState.failed || false,
-          };
         });
 
         this.orders.forEach((order) => this.checkProgress(order));
@@ -242,22 +242,50 @@ export default {
       }
     },
 
-    computeFees(order) {
-      let regionFee = 0;
-      if (order.region === "Miền Nam") regionFee = 20000;
-      else if (order.region === "Miền Trung") regionFee = 30000;
-      else if (order.region === "Miền Bắc") regionFee = 40000;
+// THÊM hàm mới:
+normalizeFees(order) {
+  // 1) Nếu đơn đã có fee trong DB => dùng luôn
+      const hasDbFees =
+        typeof order.regionFee === "number" ||
+        typeof order.methodFee === "number" ||
+        typeof order.warrantyFee === "number";
 
-      let methodFee = 0;
-      if (order.shippingMethod === "Viettel Post") methodFee = 10000;
-      else if (order.shippingMethod === "Giao Hàng Nhanh") methodFee = 20000;
+      if (hasDbFees) {
+        return {
+          regionFee: Number(order.regionFee || 0),
+          methodFee: Number(order.methodFee || 0),
+          warrantyFee: Number(order.warrantyFee || 0),
+        };
+      }
 
-      let warrantyFee = 0;
-      if (order.warranty === "Bảo hành vàng") warrantyFee = 500000;
-      else if (order.warranty === "Bảo hành VIP") warrantyFee = 1000000;
+      // 2) Fallback cho đơn cũ (chưa có fee lưu DB)
+      // Khu vực
+      const regionFeeMap = {
+        "Miền Nam": 10000,
+        "Miền Trung": 20000,
+        "Miền Bắc": 30000,
+      };
+      const regionFee = regionFeeMap[order.region] || 0;
+
+      // Phương thức vận chuyển
+      const methodFeeMap = {
+        "Giao Hàng Tiết Kiệm": 10000,
+        "Viettel Post": 20000,
+        "Giao Hàng Nhanh": 30000,
+      };
+      const methodFee = methodFeeMap[order.shippingMethod] || 0;
+
+      // Bảo hành
+      const warrantyFeeMap = {
+        "Bảo hành thường": 0,
+        "Bảo hành vàng": 500000,
+        "Bảo hành VIP": 1000000,
+      };
+      const warrantyFee = warrantyFeeMap[order.warranty] || 0;
 
       return { regionFee, methodFee, warrantyFee };
     },
+
 
     canCancel(order) {
       const currentLabel = order.timeline[order.currentStep];
@@ -295,9 +323,14 @@ export default {
       );
     },
     getTotalPrice(order) {
+      // Nếu đơn đã có tổng trong DB thì dùng thẳng để không sai khác
+      if (typeof order.total === "number") return order.total;
+
+      // Fallback đơn cũ
       const { regionFee = 0, methodFee = 0, warrantyFee = 0 } = order;
       return this.getItemsPrice(order) + regionFee + methodFee + warrantyFee;
     },
+
 
     formatPrice(value) {
       return new Intl.NumberFormat("vi-VN", {

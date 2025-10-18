@@ -22,20 +22,19 @@
 
       <button @click="submitReview">Gửi đánh giá</button>
     </div>
-
-    <!-- Danh sách bình luận -->
-    <div v-if="filteredReviews.length" class="review-list">
-      <h4>💬 Bình luận của bạn cho {{ phoneName }}</h4>
-      <div v-for="(cmt, i) in filteredReviews" :key="i" class="review-item">
-        <div class="review-header">
-          <span class="user">👤 {{ username }}</span>
-          <span class="phone">📱 {{ cmt.phoneName }}</span>
-          <span class="rating">{{ "★".repeat(cmt.rating) }}</span>
-          <span class="date">{{ formatDate(cmt.date) }}</span>
-        </div>
-        <p class="text">{{ cmt.text }}</p>
-      </div>
+<!-- 🔹 Hiển thị tất cả bình luận của mọi người -->
+<div v-if="allReviews.length" class="review-list">
+  <h4>💬 Tất cả bình luận cho {{ phoneName }}</h4>
+  <div v-for="(cmt, i) in allReviews" :key="i" class="review-item">
+    <div class="review-header">
+      <span class="user">👤 {{ cmt.username }}</span>
+      <span class="rating">{{ "★".repeat(cmt.rating) }}</span>
+      <span class="date">{{ formatDate(cmt.date) }}</span>
     </div>
+    <p class="text">{{ cmt.text }}</p>
+  </div>
+</div>
+
 
     <p v-else class="no-review">Chưa có bình luận nào cho sản phẩm này</p>
   </div>
@@ -51,82 +50,93 @@ export default {
     return {
       rating: 0,
       text: "",
-      reviews: [], // tất cả review của user
+      reviews: [], // dữ liệu review của người dùng hiện tại (có thể dùng về sau)
       userEmail: "",
       username: "",
+      allReviews: [], // tất cả review của mọi người cho sản phẩm
     };
   },
   computed: {
-    // 🔹 Lọc ra các bình luận chỉ dành cho sản phẩm hiện tại
+    // 🔹 Lọc ra các bình luận chỉ dành cho sản phẩm hiện tại (nếu cần)
     filteredReviews() {
       return this.reviews.filter((c) => c.phoneId === this.phoneId);
     },
   },
   methods: {
-  async fetchReviews() {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (!user) return;
-    this.userEmail = user.email;
-    this.username = user.username || user.name || user.email;
-    try {
-      const res = await axios.get(`http://localhost:5000/api/reviews/${user.email}`);
-      if (res.data && res.data.comments) {
-        this.reviews = Object.values(res.data.comments).reverse();
-      } else {
-        this.reviews = [];
+    // 🟢 Lấy tất cả review cho sản phẩm (và cache offline)
+    async fetchAllReviews() {
+      try {
+        const cacheKey = `reviews_${this.phoneId}`;
+
+        // 🔹 Ưu tiên cache local
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          this.allReviews = JSON.parse(cached);
+        }
+
+        // 🔹 Nếu có mạng, gọi API mới nhất
+        const res = await axios.get(`http://localhost:5000/api/reviews/all/${this.phoneId}`);
+        this.allReviews = res.data.reverse();
+
+        // 🔹 Cập nhật cache
+        localStorage.setItem(cacheKey, JSON.stringify(this.allReviews));
+      } catch (err) {
+        console.error("❌ Lỗi tải tất cả review:", err);
       }
-    } catch (err) {
-      console.error("❌ Lỗi tải review:", err);
-      this.reviews = [];
-    }
+    },
+
+    // 🟠 Gửi đánh giá của người dùng
+    async submitReview() {
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (!user) {
+        alert("⚠️ Vui lòng đăng nhập để gửi đánh giá!");
+        this.$router.push("/login");
+        return;
+      }
+
+      if (!this.text.trim() || this.rating === 0) {
+        alert("⚠️ Vui lòng nhập bình luận và chọn số sao!");
+        return;
+      }
+
+      const data = {
+        email: user.email,
+        username: user.username || user.name || user.email,
+        phoneId: this.phoneId,
+        phoneName: this.phoneName,
+        rating: this.rating,
+        text: this.text.trim(),
+      };
+
+      console.log("📤 Gửi dữ liệu đánh giá:", data);
+
+      try {
+        const res = await axios.post("http://localhost:5000/api/reviews", data);
+        console.log("✅ Phản hồi server:", res.data);
+        alert("✅ Gửi đánh giá thành công!");
+        this.text = "";
+        this.rating = 0;
+
+        // 🟢 Gọi đúng hàm load lại review (đã sửa lỗi)
+        await this.fetchAllReviews();
+      } catch (err) {
+        console.error("❌ Lỗi gửi review:", err.response?.data || err.message);
+        alert(
+          "❌ Gửi đánh giá thất bại: " +
+            (err.response?.data?.error || "Lỗi server, kiểm tra console!")
+        );
+      }
+    },
+
+    // 🔹 Định dạng ngày
+    formatDate(date) {
+      return new Date(date).toLocaleString("vi-VN");
+    },
   },
 
-  async submitReview() {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (!user) {
-      alert("⚠️ Vui lòng đăng nhập để gửi đánh giá!");
-      this.$router.push("/login");
-      return;
-    }
-
-    if (!this.text.trim() || this.rating === 0) {
-      alert("⚠️ Vui lòng nhập bình luận và chọn số sao!");
-      return;
-    }
-
-    const data = {
-      email: user.email,
-      username: user.username || user.name || user.email,
-      phoneId: this.phoneId,
-      phoneName: this.phoneName,
-      rating: this.rating,
-      text: this.text.trim(),
-    };
-
-    console.log("📤 Gửi dữ liệu đánh giá:", data); // ✅ thêm log kiểm tra
-
-    try {
-      const res = await axios.post("http://localhost:5000/api/reviews", data);
-      console.log("✅ Phản hồi server:", res.data);
-      alert("✅ Gửi đánh giá thành công!");
-      this.text = "";
-      this.rating = 0;
-      await this.fetchReviews();
-    } catch (err) {
-      console.error("❌ Lỗi gửi review:", err.response?.data || err.message);
-      alert(
-        "❌ Gửi đánh giá thất bại: " +
-          (err.response?.data?.error || "Lỗi server, kiểm tra console!")
-      );
-    }
-  },
-
-  formatDate(date) {
-    return new Date(date).toLocaleString("vi-VN");
-  },
-},
+  // 🟢 Khi component được mount, load toàn bộ review (online + offline)
   mounted() {
-    this.fetchReviews();
+    this.fetchAllReviews();
   },
 };
 </script>

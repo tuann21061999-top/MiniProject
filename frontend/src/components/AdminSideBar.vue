@@ -32,6 +32,13 @@
       📊 Sản phẩm bán chạy
     </router-link>
 
+    <router-link
+        to="/admin/profit"
+        class="sidebar-item"
+        :class="{ active: active === 'profit' }"
+    >
+        💹 Lợi nhuận
+</router-link>
     <!-- Sau này có thể thêm mục khác ở đây -->
   </nav>
 </template>

@@ -33,12 +33,14 @@
         <div class="mini-section">
           <h4>Bộ nhớ</h4>
           <div v-for="(s, i) in newProduct.storages" :key="i" class="mini-item">
-            <input v-model="s.size" placeholder="Dung lượng (vd: 128GB)" />
+            <input v-model="s.size" placeholder="Dung lượng (vd: 256GB)" />
             <input v-model.number="s.extraPrice" type="number" placeholder="Giá thêm" />
-            <button @click="removeStorage(i)" class="btn-small btn-del">❌</button>
+            <input v-model.number="s.importPrice" type="number" placeholder="Giá nhập (VNĐ)" />
+            <button @click="newProduct.storages.splice(i, 1)" class="btn-small btn-del">❌</button>
           </div>
-          <button @click="addStorage" class="btn-small btn-add">+ Thêm dung lượng</button>
+          <button @click="newProduct.storages.push({ size: '', extraPrice: 0, importPrice: 0 })" class="btn-small btn-add">+ Thêm dung lượng</button>
         </div>
+
 
         <button class="btn-main btn-add" @click="addProduct">Thêm sản phẩm</button>
       </div>
@@ -72,7 +74,8 @@
               </td>
               <td>
                 <span v-for="s in p.storages" :key="s.size" class="tag">
-                  {{ s.size }} (+{{ formatPrice(s.extraPrice) }})
+                  {{ s.size }} (+{{ formatPrice(s.extraPrice) }})  
+                  <br />Nhập: {{ formatPrice(s.importPrice) }}
                 </span>
               </td>
               <td>
@@ -113,11 +116,12 @@
           <div class="mini-section">
             <h4>Bộ nhớ</h4>
             <div v-for="(s, i) in editingProduct.storages" :key="i" class="mini-item">
-              <input v-model="s.size" placeholder="Dung lượng" />
+              <input v-model="s.size" placeholder="Dung lượng (vd: 256GB)" />
               <input v-model.number="s.extraPrice" type="number" placeholder="Giá thêm" />
+              <input v-model.number="s.importPrice" type="number" placeholder="Giá nhập (VNĐ)" />
               <button @click="editingProduct.storages.splice(i, 1)" class="btn-small btn-del">❌</button>
             </div>
-            <button @click="editingProduct.storages.push({ size: '', extraPrice: 0 })" class="btn-small btn-add">+ Thêm dung lượng</button>
+            <button @click="editingProduct.storages.push({ size: '', extraPrice: 0, importPrice: 0 })" class="btn-small btn-add">+ Thêm dung lượng</button>
           </div>
 
           <div class="modal-actions">
@@ -146,6 +150,7 @@ export default {
         name: "",
         brand: "",
         basePrice: 0,
+        importPrice: 0,
         battery: 0,
         sim: "",
         image: "",
@@ -222,7 +227,7 @@ export default {
       this.newProduct.colors.splice(i, 1);
     },
     addStorage() {
-      this.newProduct.storages.push({ size: "", extraPrice: 0 });
+      this.newProduct.storages.push({ size: "", extraPrice: 0, importPrice: 0 });
     },
     removeStorage(i) {
       this.newProduct.storages.splice(i, 1);

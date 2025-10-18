@@ -17,14 +17,15 @@ const phoneSchema = new mongoose.Schema({
     {
       size: String,
       extraPrice: Number,
+      importPrice: Number,
     },
   ],
 
   basePrice: Number,
+  importPrice: Number,
   battery: Number,
   sim: String,
 
-  // 🔥 Thêm dòng này
   specs: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Specs",

@@ -148,14 +148,14 @@ export default {
         Tím: "#800080",
         Cam: "#ffa500",
         Nâu: "#a52a2a",
-        "Xanh Lá": "#008000",
-        "Xanh Saphie": "#0f52ba",
-        "Xanh Dương": "#0000cd",
+        "Xanh lá": "#008000",
+        "Xanh dương": "#0000cd",
         "Kem": "#f5f5dc",
-        "Titan": "#b0b0b0",
         "Nâu Vàng": "#d2b48c",
-        "Sa Mạc": "#edc9af",
-        "Lục Bảo": "#50c878",
+        "Sa mạc": "#edc9af",
+        "Lục bảo": "#50c878",
+        "Vàng Xám Nhạt": "#f0e68c",
+        "Xanh Saphia": "#0f52ba",
       };
       return colors[name] || "#ccc";
     },
@@ -223,6 +223,7 @@ export default {
   mounted() {
     this.fetchPhone();
   },
+  
 };
 </script>
 
