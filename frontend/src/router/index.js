@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import Home from "../components/Home.vue";
 import PhoneList from "../components/PhoneList.vue";
 import Promotions from "../components/Promotions.vue";
-import News from "../components/News.vue";
+import News from "../components/News.vue"; // Đã import sẵn
 import Contact from "../components/Contact.vue";
 import Policy from "../components/Policy.vue";
 import PhoneDetail from "../components/PhoneDetail.vue";
@@ -36,6 +36,7 @@ const routes = [
   { path: "/promotions/students", name: "PromoStudents", component: Promotions },
 
   { path: "/news", name: "News", component: News },
+  
   { path: "/contact", name: "Contact", component: Contact },
   { path: "/policy", name: "Policy", component: Policy },
   { path: "/register", name: "Register", component: Register },
@@ -45,10 +46,7 @@ const routes = [
   { path: "/cart", name: "Cart", component: Cart },
   { path: "/payment", name: "Payment", component: PaymentManager },
 
-  // ✅ Thêm route tĩnh để đọc giỏ hàng từ localStorage
   { path: "/purchase-detail", name: "PurchaseDetailLocal", component: PurchaseDetail },
-
-  // ✅ Route động khi đã có purchaseId (từ DB)
   { path: "/purchases/:purchaseId", name: "PurchaseDetail", component: PurchaseDetail, props: true },
   { path: "/purchases/:purchaseId/status", name: "PurchaseStatus", component: PurchaseStatus, props: true },
 
@@ -62,21 +60,28 @@ const routes = [
   { path: "/addpin", name: "AddPin", component: AddPin },
   { path: "/specs", name: "Specs", component: Specs },
   { path: "/review", name: "Review", component: Review },
+  
+  // ✅ ROUTE KHO HÀNG (đã có từ trước)
+  { 
+    path: "/admin/warehouse", 
+    name: "AdminWarehouse", 
+    component: () => import("../components/AdminWarehouse.vue") 
+  },
+  
   { path: "/admin/potential-customers",name: "AdminPotentialCustomers",component: () => import("../components/AdminPotentialCustomers.vue"),},
   { path: "/admin/top-products",name: "AdminTopProducts",component: () => import("../components/AdminTopProducts.vue"),},
   { path: "/admin/profit",name: "AdminProfit",component: () => import("../components/AdminProfit.vue"),},
-,
+  { path: "/admin/feedbacks",name: "AdminFeedback",component: () => import("../components/AdminFeedback.vue"),},
+  { path: "/ad", name: "AdVideoPage", component: () => import("../components/AdVideoPage.vue"),},
 ];
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
   scrollBehavior(to, from, savedPosition) {
-    // ✅ Khi quay lại, giữ nguyên vị trí cuộn trước đó
     if (savedPosition) {
       return savedPosition;
     } else {
-      // Khi điều hướng mới, cuộn lên đầu
       return { top: 0 };
     }
   },

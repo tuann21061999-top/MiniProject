@@ -37,22 +37,31 @@
               v-for="s in phone.storages"
               :key="s.size"
               class="storage-btn"
-              :class="{ active: selectedStorage?.size === s.size }"
+              :class="{ 
+                active: selectedStorage?.size === s.size,
+                'out-of-stock': s.quantity <= 0  // ✅ Class mới
+              }"
+              :disabled="s.quantity <= 0"      
               @click="selectedStorage = s"
             >
               {{ s.size }}
+              <span v-if="s.quantity <= 0">(Hết hàng)</span> <!-- ✅ Thêm text (Hết hàng) -->
             </button>
           </div>
         </div>
 
         <!-- Nút hành động -->
         <div class="actions">
-          <button class="add-cart" :disabled="isAdding" @click="addToCart">
+          <button class="add-cart" :disabled="isAdding || isOutOfStock" @click="addToCart">
             🛒 Thêm vào giỏ hàng
           </button>
-          <button class="buy-now" :disabled="isBuying" @click="buyNow">
+          <button class="buy-now" :disabled="isBuying || isOutOfStock" @click="buyNow">
             ⚡ Mua ngay
           </button>
+          <!-- ✅ Thông báo nếu hết hàng -->
+          <p v-if="isOutOfStock" class="out-of-stock-message">
+            Sản phẩm với phiên bản này đã hết hàng.
+          </p>
         </div>
       </div>
     </div>
@@ -68,10 +77,7 @@
     </div>
 
     <!-- ✅ PHẦN REVIEW -->
-    <!-- ✅ THÊM điều kiện -->
-<Review v-if="phone" :phoneId="phone._id" :phoneName="phone.name" />
-
-
+    <Review v-if="phone" :phoneId="phone._id" :phoneName="phone.name" />
 
     <!-- ========== POPUP CẤU HÌNH ĐẦY ĐỦ ========== -->
     <transition name="fade">
@@ -112,6 +118,11 @@ export default {
       const delta = this.selectedStorage?.extraPrice || 0;
       return base + delta;
     },
+    // ✅ Computed property mới để kiểm tra tồn kho
+    isOutOfStock() {
+      // Nếu không có selectedStorage, hoặc quantity <= 0
+      return !this.selectedStorage || this.selectedStorage.quantity <= 0;
+    }
   },
   methods: {
     async fetchPhone() {
@@ -123,8 +134,15 @@ export default {
 
         if (this.phone?.colors?.length)
           this.selectedColor = this.phone.colors[0];
-        if (this.phone?.storages?.length)
-          this.selectedStorage = this.phone.storages[0];
+        
+        // ✅ Cập nhật logic: Chọn phiên bản đầu tiên CÒN HÀNG
+        if (this.phone?.storages?.length) {
+          // Tìm phiên bản đầu tiên có quantity > 0
+          const firstAvailable = this.phone.storages.find(s => s.quantity > 0);
+          // Nếu tất cả đều hết hàng, thì cứ chọn cái đầu tiên (nó sẽ bị disabled)
+          this.selectedStorage = firstAvailable || this.phone.storages[0];
+        }
+
       } catch (err) {
         console.error("❌ fetchPhone error:", err);
       }
@@ -163,6 +181,12 @@ export default {
       this.showPopup = false;
     },
     async addToCart() {
+      // ✅ Thêm kiểm tra ở đây
+      if (this.isOutOfStock) {
+        alert("Sản phẩm đã hết hàng, bạn không thể thêm vào giỏ!");
+        return;
+      }
+
       const user = JSON.parse(localStorage.getItem("user"));
       if (!user) {
         alert("Bạn cần đăng nhập để mua hàng!");
@@ -198,6 +222,12 @@ export default {
       }
     },
     async buyNow() {
+      // ✅ Thêm kiểm tra ở đây
+      if (this.isOutOfStock) {
+        alert("Sản phẩm đã hết hàng, bạn không thể mua ngay!");
+        return;
+      }
+
       const user = JSON.parse(localStorage.getItem("user"));
       if (!user) {
         alert("Bạn cần đăng nhập để mua hàng!");
@@ -349,9 +379,29 @@ export default {
   box-shadow: 0 4px 12px rgba(255, 102, 0, 0.3);
 }
 
+/* ✅ CSS MỚI CHO NÚT HẾT HÀNG */
+.storage-btn.out-of-stock {
+  background: #f0f0f0;
+  border-color: #e0e0e0;
+  color: #aaa;
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+.storage-btn.out-of-stock:hover {
+  background: #f0f0f0;
+  border-color: #e0e0e0;
+}
+.storage-btn.out-of-stock.active {
+  background: #f0f0f0;
+  border-color: #e0e0e0;
+  color: #aaa;
+  box-shadow: none;
+}
+
 /* ========== NÚT HÀNH ĐỘNG ========== */
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 18px;
   margin-top: 30px;
 }
@@ -382,6 +432,21 @@ export default {
 .buy-now:hover {
   transform: translateY(-2px);
   box-shadow: 0 5px 18px rgba(255, 102, 0, 0.3);
+}
+
+/* ✅ CSS MỚI CHO NÚT BỊ DISABLE */
+.add-cart:disabled,
+.buy-now:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.out-of-stock-message {
+  width: 100%;
+  color: #dc3545;
+  font-weight: 500;
+  margin-top: -10px;
 }
 
 /* ========== CẤU HÌNH NỔI BẬT ========== */

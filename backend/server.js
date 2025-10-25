@@ -15,6 +15,11 @@ const statsRoutes = require("./routes/statsRoutes.js");
 const Pin = require("./models/pin.js");
 const Specs = require("./models/specs.js");
 const Review = require("./models/review.js");
+const feedbackRoutes = require("./routes/feedbackRoutes.js");
+
+// Thêm dòng này để dùng cho hàm sửa 'quantity'
+const Phone = require("./models/Phones.js");
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -25,8 +30,31 @@ mongoose
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => console.log("✅ Kết nối MongoDB thành công"))
+  .then(() => {
+    console.log("✅ Kết nối MongoDB thành công");
+
+    // Tự động chạy hàm sửa lỗi 'quantity' khi server khởi động
+    updatePhoneQuantities();
+  })
   .catch((err) => console.error("❌ Lỗi MongoDB:", err));
+
+// ===== HÀM TỰ ĐỘNG SỬA 'QUANTITY' =====
+async function updatePhoneQuantities() {
+  try {
+    const result = await Phone.updateMany(
+      { "storages.quantity": { $exists: false } }, // Chỉ tìm sản phẩm chưa có quantity
+      { $set: { "storages.$[].quantity": 0 } } // Thêm quantity: 0 cho TẤT CẢ storages
+    );
+    if (result.modifiedCount > 0) {
+      console.log(
+        `✅ (DB Auto-Fix) Đã cập nhật ${result.modifiedCount} sản phẩm, thêm 'quantity: 0'.`
+      );
+    }
+  } catch (err) {
+    console.error("❌ Lỗi khi cập nhật 'quantity' cho sản phẩm:", err);
+  }
+}
+// ======================================
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -40,7 +68,7 @@ app.use("/api/stats", statsRoutes);
 app.use("/api/pins", require("./routes/pinRoutes"));
 app.use("/api/specs", require("./routes/specsRoutes"));
 app.use("/api/reviews", require("./routes/reviewRoutes"));
-
+app.use("/api/feedbacks", feedbackRoutes);
 
 // Server
 const PORT = 5000;
@@ -58,7 +86,6 @@ app.post("/api/auth/check-user", async (req, res) => {
     res.json({ success: false });
   }
 });
-
 
 // Đổi mật khẩu
 app.post("/api/auth/reset-password", async (req, res) => {

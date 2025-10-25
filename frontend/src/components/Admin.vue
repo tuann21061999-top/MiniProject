@@ -36,9 +36,12 @@
             <input v-model="s.size" placeholder="Dung lượng (vd: 256GB)" />
             <input v-model.number="s.extraPrice" type="number" placeholder="Giá thêm" />
             <input v-model.number="s.importPrice" type="number" placeholder="Giá nhập (VNĐ)" />
+            <!-- ✅ THÊM INPUT SỐ LƯỢNG -->
+            <input v-model.number="s.quantity" type="number" placeholder="Số lượng" style="width: 80px;" />
             <button @click="newProduct.storages.splice(i, 1)" class="btn-small btn-del">❌</button>
           </div>
-          <button @click="newProduct.storages.push({ size: '', extraPrice: 0, importPrice: 0 })" class="btn-small btn-add">+ Thêm dung lượng</button>
+          <!-- ✅ CẬP NHẬT HÀM PUSH -->
+          <button @click="newProduct.storages.push({ size: '', extraPrice: 0, importPrice: 0, quantity: 0 })" class="btn-small btn-add">+ Thêm dung lượng</button>
         </div>
 
 
@@ -57,7 +60,7 @@
               <th>Pin</th>
               <th>SIM</th>
               <th>Màu sắc</th>
-              <th>Bộ nhớ</th>
+              <th>Bộ nhớ / Tồn kho</th> <!-- ✅ SỬA TIÊU ĐỀ -->
               <th>Hành động</th>
             </tr>
           </thead>
@@ -73,9 +76,11 @@
                 <span v-for="c in p.colors" :key="c.name" class="tag">{{ c.name }}</span>
               </td>
               <td>
+                <!-- ✅ HIỂN THỊ SỐ LƯỢNG TỒN KHO -->
                 <span v-for="s in p.storages" :key="s.size" class="tag">
                   {{ s.size }} (+{{ formatPrice(s.extraPrice) }})  
                   <br />Nhập: {{ formatPrice(s.importPrice) }}
+                  <br /><b>Kho: {{ s.quantity || 0 }}</b>
                 </span>
               </td>
               <td>
@@ -119,9 +124,12 @@
               <input v-model="s.size" placeholder="Dung lượng (vd: 256GB)" />
               <input v-model.number="s.extraPrice" type="number" placeholder="Giá thêm" />
               <input v-model.number="s.importPrice" type="number" placeholder="Giá nhập (VNĐ)" />
+              <!-- ✅ THÊM INPUT SỐ LƯỢNG (MODAL) -->
+              <input v-model.number="s.quantity" type="number" placeholder="Số lượng" style="width: 80px;" />
               <button @click="editingProduct.storages.splice(i, 1)" class="btn-small btn-del">❌</button>
             </div>
-            <button @click="editingProduct.storages.push({ size: '', extraPrice: 0, importPrice: 0 })" class="btn-small btn-add">+ Thêm dung lượng</button>
+             <!-- ✅ CẬP NHẬT HÀM PUSH (MODAL) -->
+            <button @click="editingProduct.storages.push({ size: '', extraPrice: 0, importPrice: 0, quantity: 0 })" class="btn-small btn-add">+ Thêm dung lượng</button>
           </div>
 
           <div class="modal-actions">
@@ -175,6 +183,10 @@ export default {
     },
     async addProduct() {
       try {
+        // ✅ Đảm bảo quantity là số
+        this.newProduct.storages.forEach(s => {
+          s.quantity = Number(s.quantity) || 0;
+        });
         const res = await axios.post("http://localhost:5000/api/phones", this.newProduct);
         this.products.push(res.data);
         this.newProduct = {
@@ -208,6 +220,10 @@ export default {
     },
     async saveEdit() {
       try {
+         // ✅ Đảm bảo quantity là số
+        this.editingProduct.storages.forEach(s => {
+          s.quantity = Number(s.quantity) || 0;
+        });
         const edited = this.editingProduct;
         const res = await axios.put(`http://localhost:5000/api/phones/${edited._id}`, edited);
         this.products.splice(this.editingIndex, 1, res.data);
@@ -227,10 +243,10 @@ export default {
       this.newProduct.colors.splice(i, 1);
     },
     addStorage() {
-      this.newProduct.storages.push({ size: "", extraPrice: 0, importPrice: 0 });
+      // Đã bị thay thế bằng @click inline
     },
     removeStorage(i) {
-      this.newProduct.storages.splice(i, 1);
+      // Đã bị thay thế bằng @click inline
     },
     formatPrice(value) {
       return new Intl.NumberFormat("vi-VN", {

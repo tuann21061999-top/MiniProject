@@ -18,6 +18,11 @@ const phoneSchema = new mongoose.Schema({
       size: String,
       extraPrice: Number,
       importPrice: Number,
+      // 👇 TRƯỜNG MỚI ĐƯỢC THÊM VÀO ĐÂY 👇
+      quantity: {
+        type: Number,
+        default: 0
+      }
     },
   ],
 

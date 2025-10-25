@@ -95,112 +95,110 @@ router.get("/potential-customers", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// ✅ Lợi nhuận gộp theo tên sản phẩm (theo từng sản phẩm trong đơn, chia phí đều)
+
+/* ✅ API: Lợi nhuận theo máy và bảo hành, có thể lọc theo ngày/tháng/năm */
 router.get("/profit", async (req, res) => {
   try {
-    const { month } = req.query;
+    const { mode = "month", date, month, year } = req.query;
     const filter = { status: "done" };
 
-    // 🎯 Lọc theo tháng nếu có param ?month=YYYY-MM
-    if (month) {
-      const startDate = new Date(`${month}-01T00:00:00.000Z`);
-      const endDate = new Date(startDate);
-      endDate.setMonth(endDate.getMonth() + 1);
+    // 🎯 Xác định khung thời gian lọc chính xác
+    let startDate, endDate;
+    if (mode === "day" && date) {
+      startDate = new Date(`${date}T00:00:00.000Z`);
+      endDate = new Date(`${date}T23:59:59.999Z`);
+      filter.createdAt = { $gte: startDate, $lt: endDate };
+    } else if (mode === "month" && month) {
+      const [y, m] = month.split("-");
+      startDate = new Date(Date.UTC(y, m - 1, 1, 0, 0, 0));
+      endDate = new Date(Date.UTC(y, m, 1, 0, 0, 0));
+      filter.createdAt = { $gte: startDate, $lt: endDate };
+    } else if (mode === "year" && year) {
+      startDate = new Date(Date.UTC(year, 0, 1, 0, 0, 0));
+      endDate = new Date(Date.UTC(Number(year) + 1, 0, 1, 0, 0, 0));
       filter.createdAt = { $gte: startDate, $lt: endDate };
     }
 
+    // ✅ Lấy dữ liệu đơn hàng
     const purchases = await Purchase.find(filter);
 
+    // Tổng hợp các giá trị
     let totalRevenue = 0;
     let totalCost = 0;
-    const productStats = {}; // key = Tên sản phẩm
+    let totalProfit = 0;
 
-    purchases.forEach((purchase) => {
-      const itemCount = purchase.items.length; // số loại sản phẩm trong đơn
+    const deviceStats = {};
+    const warrantyStats = {
+      gold: { name: "Bảo hành vàng", qty: 0, revenue: 0, profit: 0 },
+      vip: { name: "Bảo hành VIP", qty: 0, revenue: 0, profit: 0 },
+    };
 
-      // 🎯 Tính tổng các loại phí cần chia đều
-      const extraFees =
-        (purchase.regionFee || 0) +
-        (purchase.methodFee || 0) +
-        (purchase.warrantyFee || 0);
-      const shareFee = itemCount > 0 ? extraFees / itemCount : 0;
-
-      purchase.items.forEach((item) => {
+    // ✅ Duyệt từng đơn
+    purchases.forEach((p) => {
+      // --- Lợi nhuận bán máy ---
+      p.items.forEach((item) => {
         const name = item.name || "Sản phẩm không tên";
         const quantity = Number(item.quantity || 0);
         const price = Number(item.price || 0);
         const importPrice = Number(item.importPrice || 0);
 
-        // 🧮 Tính riêng cho từng sản phẩm
         const revenue = price * quantity;
         const cost = importPrice * quantity;
-        const profit = revenue - cost + shareFee; // cộng phần phí chia đều
+        const profit = revenue - cost;
 
         totalRevenue += revenue;
         totalCost += cost;
+        totalProfit += profit;
 
-        if (!productStats[name]) {
-          productStats[name] = {
-            name,
-            revenue: 0,
-            cost: 0,
-            profit: 0,
-            qty: 0,
-          };
+        if (!deviceStats[name]) {
+          deviceStats[name] = { name, qty: 0, revenue: 0, cost: 0, profit: 0 };
         }
 
-        productStats[name].revenue += revenue;
-        productStats[name].cost += cost;
-        productStats[name].profit += profit;
-        productStats[name].qty += quantity;
+        deviceStats[name].qty += quantity;
+        deviceStats[name].revenue += revenue;
+        deviceStats[name].cost += cost;
+        deviceStats[name].profit += profit;
       });
+
+      // --- Lợi nhuận bảo hành ---
+      const warrantyFee = Number(p.warrantyFee || 0);
+      if (p.warranty === "Bảo hành vàng") {
+        warrantyStats.gold.qty += 1;
+        warrantyStats.gold.revenue += warrantyFee;
+        warrantyStats.gold.profit += warrantyFee;
+        totalRevenue += warrantyFee;
+        totalProfit += warrantyFee;
+      } else if (p.warranty === "Bảo hành VIP") {
+        warrantyStats.vip.qty += 1;
+        warrantyStats.vip.revenue += warrantyFee;
+        warrantyStats.vip.profit += warrantyFee;
+        totalRevenue += warrantyFee;
+        totalProfit += warrantyFee;
+      }
     });
 
-    const totalProfit = totalRevenue - totalCost;
-
-    // 🔢 Sắp xếp theo lợi nhuận giảm dần
-    const details = Object.values(productStats).sort(
+    const deviceDetails = Object.values(deviceStats).sort(
       (a, b) => b.profit - a.profit
     );
 
     res.json({
-      month: month || "Tất cả",
+      mode,
+      range:
+        mode === "day"
+          ? date
+          : mode === "month"
+          ? month
+          : mode === "year"
+          ? year
+          : "Tất cả",
       totalRevenue,
       totalCost,
       totalProfit,
-      details,
+      deviceDetails,
+      warrantyStats,
     });
   } catch (err) {
     console.error("❌ Lỗi /stats/profit:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ✅ API lấy danh sách đơn hàng chứa sản phẩm cụ thể
-router.get("/product-orders", async (req, res) => {
-  try {
-    const { name } = req.query;
-    if (!name) return res.status(400).json({ error: "Thiếu tên sản phẩm" });
-
-    const purchases = await Purchase.find({
-      status: "done",
-      "items.name": name
-    });
-
-    // Chỉ lấy thông tin cần thiết để hiển thị
-    const result = purchases.map(p => ({
-      orderId: p._id,
-      customer: p.fullName,
-      email: p.email,
-      phone: p.phone,
-      createdAt: p.createdAt,
-      total: p.total,
-      items: p.items.filter(i => i.name === name)
-    }));
-
-    res.json(result);
-  } catch (err) {
-    console.error("❌ Lỗi /stats/product-orders:", err);
     res.status(500).json({ error: err.message });
   }
 });

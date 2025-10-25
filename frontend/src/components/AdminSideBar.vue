@@ -8,6 +8,15 @@
       📦 Quản lý sản phẩm
     </router-link>
 
+    <!-- ✅ THÊM LINK KHO HÀNG -->
+    <router-link
+      to="/admin/warehouse"
+      class="sidebar-item"
+      :class="{ active: isActive('/admin/warehouse') }"
+    >
+      🏪 Quản lý kho
+    </router-link>
+    
     <router-link
       to="/admin2"
       class="sidebar-item"
@@ -38,8 +47,14 @@
         :class="{ active: active === 'profit' }"
     >
         💹 Lợi nhuận
-</router-link>
-    <!-- Sau này có thể thêm mục khác ở đây -->
+    </router-link>
+    <router-link
+      to="/admin/feedbacks"
+      class="sidebar-item"
+      :class="{ active: active === 'feedback' }"
+>
+      💬 Phản hồi khách hàng
+    </router-link>
   </nav>
 </template>
 
@@ -51,6 +66,7 @@ export default {
   },
   methods: {
     isActive(path) {
+      // ✅ CẬP NHẬT LOGIC ACTIVE ĐỂ CHÍNH XÁC HƠN
       return this.$route.path === path;
     },
   },

@@ -210,6 +210,21 @@ export default {
         order.failed = false;
         await this.updateStatus(order._id, "done");
         order.status = "done";
+        
+        // ✅ BẮT ĐẦU LOGIC MỚI: TRỪ KHO
+        try {
+          console.log("Bắt đầu trừ kho cho đơn:", order._id);
+          // Gửi danh sách 'items' trong đơn hàng lên backend
+          await axios.post('http://localhost:5000/api/phones/deduct-stock', {
+            items: order.items
+          });
+          console.log("✅ Trừ kho thành công!");
+        } catch (err) {
+          console.error("❌ Lỗi khi trừ kho:", err);
+          // Có thể thông báo cho admin ở đây
+        }
+        // ✅ KẾT THÚC LOGIC MỚI
+        
       } else {
         order.timeline[order.timeline.length - 1] = "Giao không thành công";
         order.currentStep = order.timeline.length - 1;

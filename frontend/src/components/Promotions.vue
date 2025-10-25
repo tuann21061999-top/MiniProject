@@ -84,6 +84,7 @@ export default {
           newPrice: "29.990.000₫",
           img:
             "https://taoxinh.vn/wp-content/uploads/2024/11/iphone-15-thuong-vs-iphone-15-plus-128gb-256gb-512gb-mau-den-768x768.jpg",
+          phoneId: "68ca70be2ca58909091319ab" // ✅ ID GIẢ LẬP
         },
         {
           name: "Samsung Galaxy S24 Ultra",
@@ -91,6 +92,7 @@ export default {
           newPrice: "26.990.000₫",
           img:
             "https://cdn2.cellphones.com.vn/358x/media/catalog/product/g/a/galaxy-s24-ultra-vang_1_3.png",
+          phoneId: "some-samsung-id" // ✅ ID GIẢ LẬP
         },
         {
           name: "Xiaomi 15 Ultra",
@@ -98,6 +100,7 @@ export default {
           newPrice: "22.990.000₫",
           img:
             "https://cdn2.cellphones.com.vn/358x/media/catalog/product/d/i/dien-thoai-xiaomi-15-ultra_17_.png",
+          phoneId: "some-xiaomi-id" // ✅ ID GIẢ LẬP
         },
       ],
 
@@ -113,7 +116,7 @@ export default {
         {
           title: "Giảm 50% phụ kiện",
           desc: "Ốp lưng, tai nghe, sạc nhanh đồng loạt giảm sốc.",
-          img: "../assets/full/giamgia.jpg",
+          img: "https://placehold.co/600x400/ff6600/FFFFFF?text=Giam+50%25", // ✅ Sửa ảnh local
           route: "/accessoriespromo",
         },
         {
@@ -128,7 +131,7 @@ export default {
           title: "Student Deal",
           desc:
             "Ưu đãi riêng cho HSSV: mã giảm thêm 5% + trả góp 0% cho sinh viên.",
-          img: "",
+          img: "https://placehold.co/600x400/0066cc/FFFFFF?text=Student+Deal", // ✅ Thêm ảnh placeholder
           route: "/studentdealpromo",
         },
       ],
@@ -155,6 +158,7 @@ export default {
     updateCountdown() {
       const now = Date.now();
       const startAt = this.saleEndAt - this.SALE_DURATION_MS;
+      
       // Nếu sale chưa bắt đầu: hiển thị thời gian tới khi bắt đầu
       if (now < startAt) {
         const untilStart = startAt - now;
@@ -173,6 +177,8 @@ export default {
           clearInterval(this.intervalId);
           this.intervalId = null;
         }
+        // ✅ TỰ ĐỘNG BẮT ĐẦU CHU KỲ MỚI SAU KHI KẾT THÚC
+        // this.startCountdown(); 
         return;
       }
 
@@ -186,15 +192,27 @@ export default {
     },
 
     startCountdown() {
-      this.saleEndAt = new Date(2025, 9, 10, 12, 0, 0).getTime();
+      // ✅ SỬA LỖI: Đặt ngày kết thúc là 12:00 trưa ngày mai (23/10/2025)
+      // Thay vì ngày 10/10/2025 (đã qua)
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(12, 0, 0, 0); // 12:00:00 trưa mai
+      
+      this.saleEndAt = tomorrow.getTime();
 
       // Run lần đầu rồi bắt interval
       this.updateCountdown();
+      if (this.intervalId) clearInterval(this.intervalId); // Xóa interval cũ
       this.intervalId = setInterval(this.updateCountdown, 1000);
     },
 
     onBuy(item) {
-      alert(`Đã hết hàng: ${item.name}.`);
+      // ✅ SỬA LỖI: Chuyển đến trang chi tiết thay vì alert
+      if (item.phoneId) {
+        this.$router.push(`/phones/${item.phoneId}`);
+      } else {
+        alert("Lỗi: Không tìm thấy mã sản phẩm.");
+      }
     },
 
     viewDeal(route) {
@@ -283,6 +301,11 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.flash-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
 }
 .flash-card img {
   width: 100%;
@@ -373,6 +396,11 @@ export default {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.promo-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
 }
 .promo-card img {
   width: 40%;

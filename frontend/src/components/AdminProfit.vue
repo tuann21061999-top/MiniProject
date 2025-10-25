@@ -1,49 +1,91 @@
 <template>
   <div class="admin-profit">
     <AdminSideBar active="profit" />
-
     <div class="content">
       <div class="header">
         <h2>💹 Thống kê lợi nhuận</h2>
-        <p>Xem lợi nhuận của cửa hàng theo tháng</p>
+        <p>Xem lợi nhuận bán máy hoặc bảo hành theo thời gian</p>
       </div>
 
+      <!-- Bộ lọc thời gian -->
       <div class="filter-section">
-        <label for="monthPicker">Chọn tháng:</label>
-        <input type="month" id="monthPicker" v-model="selectedMonth" @change="fetchProfit" />
+        <label>Chế độ lọc:</label>
+        <select v-model="mode" @change="fetchProfit">
+          <option value="day">Theo ngày</option>
+          <option value="month">Theo tháng</option>
+          <option value="year">Theo năm</option>
+        </select>
+
+        <input
+          v-if="mode === 'day'"
+          type="date"
+          v-model="selectedDate"
+          @change="fetchProfit"
+        />
+        <input
+          v-if="mode === 'month'"
+          type="month"
+          v-model="selectedMonth"
+          @change="fetchProfit"
+        />
+        <input
+          v-if="mode === 'year'"
+          type="number"
+          min="2000"
+          max="2100"
+          v-model="selectedYear"
+          @change="fetchProfit"
+        />
       </div>
 
+      <!-- Tổng hợp -->
       <div class="summary-box" v-if="summary">
-        <p><b>📅 Tháng:</b> {{ summary.month }}</p>
-        <p><b>💰 Tổng doanh thu:</b> {{ formatCurrency(summary.totalRevenue) }}</p>
-        <p><b>💵 Tổng chi phí (giá nhập):</b> {{ formatCurrency(summary.totalCost) }}</p>
-        <p><b>📈 Tổng lợi nhuận:</b> {{ formatCurrency(summary.totalProfit) }}</p>
+        <p><b>🗓️ Thời gian:</b> {{ summary.range }}</p>
+        <p><b>💰 Doanh thu:</b> {{ formatCurrency(summary.totalRevenue) }}</p>
+        <p><b>💵 Chi phí:</b> {{ formatCurrency(summary.totalCost) }}</p>
+        <p><b>📈 Lợi nhuận:</b> {{ formatCurrency(summary.totalProfit) }}</p>
       </div>
 
+      <!-- Chuyển chế độ -->
+      <div class="view-toggle">
+        <button
+          :class="{ active: viewMode === 'device' }"
+          @click="viewMode = 'device'; drawChart()"
+        >
+          📱 Xem lợi nhuận bán máy
+        </button>
+        <button
+          :class="{ active: viewMode === 'warranty' }"
+          @click="viewMode = 'warranty'; drawChart()"
+        >
+          🛡️ Xem lợi nhuận bảo hành
+        </button>
+      </div>
+
+      <!-- Biểu đồ -->
       <div class="chart-box">
         <canvas id="profitChart"></canvas>
       </div>
 
-      <div class="table-container">
+      <!-- Bảng chi tiết -->
+      <div v-if="viewMode === 'device'" class="table-container">
+        <h3>📱 Lợi nhuận bán máy</h3>
         <table class="profit-table">
           <thead>
             <tr>
               <th>#</th>
               <th>Tên sản phẩm</th>
-              <th>Số lượng bán</th>
+              <th>Số lượng</th>
               <th>Doanh thu</th>
               <th>Giá nhập</th>
               <th>Lợi nhuận</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(item, i) in profits" :key="item.name" class="hover-row">
+            <tr v-for="(item, i) in devices" :key="item.name">
               <td>{{ i + 1 }}</td>
-              <td>
-                {{ item.name }}
-                <button class="details-btn" @click="showProductOrders(item.name)">🔍 Chi tiết</button>
-              </td>
-              <td class="quantity">{{ item.qty }}</td>
+              <td>{{ item.name }}</td>
+              <td>{{ item.qty }}</td>
               <td class="revenue">{{ formatCurrency(item.revenue) }}</td>
               <td class="cost">{{ formatCurrency(item.cost) }}</td>
               <td class="profit">{{ formatCurrency(item.profit) }}</td>
@@ -52,34 +94,32 @@
         </table>
       </div>
 
-      <!-- Popup hiển thị danh sách đơn hàng -->
-      <div v-if="showDetails" class="popup-overlay">
-        <div class="popup">
-          <h3>🧾 Danh sách đơn hàng - {{ selectedProduct }}</h3>
-          <table class="details-table">
-            <thead>
-              <tr>
-                <th>Mã đơn</th>
-                <th>Khách hàng</th>
-                <th>Email</th>
-                <th>Ngày mua</th>
-                <th>Số lượng</th>
-                <th>Tổng tiền</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="o in productOrders" :key="o.orderId">
-                <td>{{ o.orderId }}</td>
-                <td>{{ o.customer }}</td>
-                <td>{{ o.email }}</td>
-                <td>{{ new Date(o.createdAt).toLocaleDateString() }}</td>
-                <td>{{ o.items[0].quantity }}</td>
-                <td>{{ formatCurrency(o.total) }}</td>
-              </tr>
-            </tbody>
-          </table>
-          <button class="close-btn" @click="showDetails = false">Đóng</button>
-        </div>
+      <div v-else class="table-container">
+        <h3>🛡️ Lợi nhuận bảo hành</h3>
+        <table class="profit-table">
+          <thead>
+            <tr>
+              <th>Loại</th>
+              <th>Số lượng</th>
+              <th>Doanh thu</th>
+              <th>Lợi nhuận</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Vàng</td>
+              <td>{{ warranty.gold.qty }}</td>
+              <td class="revenue">{{ formatCurrency(warranty.gold.revenue) }}</td>
+              <td class="profit">{{ formatCurrency(warranty.gold.profit) }}</td>
+            </tr>
+            <tr>
+              <td>VIP</td>
+              <td>{{ warranty.vip.qty }}</td>
+              <td class="revenue">{{ formatCurrency(warranty.vip.revenue) }}</td>
+              <td class="profit">{{ formatCurrency(warranty.vip.profit) }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -94,13 +134,15 @@ export default {
   components: { AdminSideBar },
   data() {
     return {
+      mode: "month",
+      selectedDate: new Date().toISOString().slice(0, 10),
       selectedMonth: this.getCurrentMonth(),
+      selectedYear: new Date().getFullYear(),
       summary: null,
-      profits: [],
+      devices: [],
+      warranty: { gold: {}, vip: {} },
       chartInstance: null,
-      showDetails: false,
-      selectedProduct: "",
-      productOrders: [],
+      viewMode: "device",
     };
   },
   mounted() {
@@ -114,31 +156,39 @@ export default {
     },
     async fetchProfit() {
       try {
-        const res = await fetch(`http://localhost:5000/api/stats/profit?month=${this.selectedMonth}`);
+        let url = "http://localhost:5000/api/stats/profit?";
+        if (this.mode === "day") url += `mode=day&date=${this.selectedDate}`;
+        else if (this.mode === "month")
+          url += `mode=month&month=${this.selectedMonth}`;
+        else if (this.mode === "year") url += `mode=year&year=${this.selectedYear}`;
+
+        const res = await fetch(url);
         const data = await res.json();
+
         this.summary = data;
-        this.profits = data.details;
+        this.devices = data.deviceDetails || [];
+        this.warranty = data.warrantyStats || {};
         this.drawChart();
       } catch (err) {
-        console.error("❌ Lỗi lấy lợi nhuận:", err);
-      }
-    },
-    async showProductOrders(name) {
-      try {
-        const res = await fetch(`http://localhost:5000/api/stats/product-orders?name=${encodeURIComponent(name)}`);
-        const data = await res.json();
-        this.selectedProduct = name;
-        this.productOrders = data;
-        this.showDetails = true;
-      } catch (err) {
-        console.error("❌ Lỗi lấy chi tiết đơn hàng:", err);
+        console.error("❌ Lỗi lấy dữ liệu:", err);
       }
     },
     drawChart() {
       if (this.chartInstance) this.chartInstance.destroy();
       const ctx = document.getElementById("profitChart").getContext("2d");
-      const labels = this.profits.map((p) => p.name);
-      const profits = this.profits.map((p) => p.profit);
+
+      let labels = [], dataPoints = [];
+      if (this.viewMode === "device") {
+        labels = this.devices.map((p) => p.name);
+        dataPoints = this.devices.map((p) => p.profit);
+      } else {
+        labels = ["Bảo hành vàng", "Bảo hành VIP"];
+        dataPoints = [
+          this.warranty.gold?.profit || 0,
+          this.warranty.vip?.profit || 0,
+        ];
+      }
+
       this.chartInstance = new Chart(ctx, {
         type: "bar",
         data: {
@@ -146,45 +196,29 @@ export default {
           datasets: [
             {
               label: "Lợi nhuận (VND)",
-              data: profits,
-              backgroundColor: "#8e44ad",
+              data: dataPoints,
+              backgroundColor:
+                this.viewMode === "device"
+                  ? "rgba(142, 68, 173, 0.8)"
+                  : "rgba(241, 196, 15, 0.8)",
+              borderRadius: 8,
             },
           ],
         },
         options: {
           responsive: true,
           plugins: {
-            tooltip: {
-              callbacks: {
-                label: (ctx) =>
-                  new Intl.NumberFormat("vi-VN", {
-                    style: "currency",
-                    currency: "VND",
-                  }).format(ctx.parsed.y),
-              },
-            },
+            legend: { display: false },
           },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                callback: (v) =>
-                  new Intl.NumberFormat("vi-VN", {
-                    style: "currency",
-                    currency: "VND",
-                    maximumFractionDigits: 0,
-                  }).format(v),
-              },
-            },
-          },
+          scales: { y: { beginAtZero: true } },
         },
       });
     },
-    formatCurrency(value) {
+    formatCurrency(v) {
       return new Intl.NumberFormat("vi-VN", {
         style: "currency",
         currency: "VND",
-      }).format(value || 0);
+      }).format(v || 0);
     },
   },
 };
@@ -194,7 +228,7 @@ export default {
 .admin-profit {
   display: flex;
   height: 100vh;
-  background-color: #f8fafc;
+  background: #f8fafc;
 }
 .content {
   flex: 1;
@@ -204,37 +238,60 @@ export default {
 .header {
   background: linear-gradient(135deg, #8e44ad, #9b59b6);
   color: white;
-  padding: 20px 30px;
+  padding: 20px;
   border-radius: 12px;
   margin-bottom: 20px;
 }
 .filter-section {
-  margin-bottom: 20px;
   display: flex;
-  gap: 10px;
   align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
 }
 .summary-box {
   background: white;
-  border-radius: 10px;
-  padding: 15px 20px;
-  box-shadow: 0 4px 8px rgb(0 0 0 / 0.1);
-  margin-bottom: 25px;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 15px;
+}
+.view-toggle {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.view-toggle button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  background: #ddd;
+  transition: 0.3s;
+}
+.view-toggle button.active {
+  background: linear-gradient(135deg, #8e44ad, #9b59b6);
+  color: white;
 }
 .chart-box {
   background: white;
-  border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
+  border-radius: 12px;
   margin-bottom: 25px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+.profit-table {
+  width: 100%;
+  border-collapse: collapse;
 }
 .profit-table th {
-  background-color: #8e44ad;
+  background: #8e44ad;
   color: white;
-  padding: 10px;
+  padding: 8px;
 }
 .profit-table td {
-  padding: 10px;
+  padding: 8px;
   border-bottom: 1px solid #eee;
 }
 .revenue {
@@ -246,68 +303,5 @@ export default {
 .profit {
   color: #8e44ad;
   font-weight: bold;
-}
-
-/* Hover + Nút chi tiết */
-.hover-row:hover {
-  background: #f3e9ff;
-}
-.details-btn {
-  background: none;
-  border: none;
-  color: #8e44ad;
-  font-size: 13px;
-  margin-left: 6px;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-.hover-row:hover .details-btn {
-  opacity: 1;
-}
-
-/* Popup chi tiết */
-.popup-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-.popup {
-  background: #fff;
-  padding: 20px;
-  border-radius: 12px;
-  width: 700px;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-.popup h3 {
-  margin-bottom: 12px;
-  color: #8e44ad;
-}
-.details-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 10px;
-}
-.details-table th {
-  background: #8e44ad;
-  color: white;
-  padding: 8px;
-}
-.details-table td {
-  border-bottom: 1px solid #eee;
-  padding: 6px;
-}
-.close-btn {
-  background: #8e44ad;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
 }
 </style>
