@@ -2,9 +2,8 @@ const mongoose = require("mongoose");
 
 const purchaseSchema = new mongoose.Schema(
   {
-    email: { type: String, required: true }, // email user
+    email: { type: String, required: true },
 
-    // 🛍️ Thông tin sản phẩm
     items: [
       {
         phoneId: { type: mongoose.Schema.Types.ObjectId, ref: "Phone" },
@@ -18,12 +17,10 @@ const purchaseSchema = new mongoose.Schema(
       },
     ],
 
-    // 💰 Thanh toán
     total: { type: Number, required: true },
     paymentMethod: { type: String, default: "COD" },
     warranty: { type: String, default: "Bảo hành thường" },
 
-    // 🚚 Giao hàng
     fullName: { type: String, required: true },
     phone: { type: String, required: true },
     shippingAddress: { type: String, required: true },
@@ -35,7 +32,6 @@ const purchaseSchema = new mongoose.Schema(
     },
     shippingMethod: { type: String, default: "Giao Hàng Tiết Kiệm" },
 
-    // 📦 Phí dịch vụ
     regionFee: { type: Number, default: 0 },
     methodFee: { type: Number, default: 0 },
     warrantyFee: { type: Number, default: 0 },
@@ -43,8 +39,15 @@ const purchaseSchema = new mongoose.Schema(
     // 📊 Trạng thái
     status: {
       type: String,
-      enum: ["pending", "paid", "done", "unsuccessful", "cancelled"],
-      default: "pending",
+      enum: [
+        "waiting_approval", // 🟡 Chờ admin duyệt
+        "pending",           // COD đã duyệt, đang giao
+        "paid",              // Online đã duyệt, đang giao
+        "done",              // Hoàn tất
+        "unsuccessful",      // Giao không thành công
+        "cancelled",         // Hủy
+      ],
+      default: "waiting_approval",
     },
   },
   { timestamps: true }

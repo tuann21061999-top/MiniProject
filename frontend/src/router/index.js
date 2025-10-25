@@ -24,6 +24,7 @@ import Admin2 from "../components/Admin2.vue";
 import AddPin from "../components/AddPin.vue";
 import Specs from "../components/Specs.vue";
 import Review from "../components/Review.vue";
+import AdminOrders from "../components/AdminOrders.vue";
 
 const routes = [
   { path: "/", name: "Home", component: Home },
@@ -73,6 +74,7 @@ const routes = [
   { path: "/admin/profit",name: "AdminProfit",component: () => import("../components/AdminProfit.vue"),},
   { path: "/admin/feedbacks",name: "AdminFeedback",component: () => import("../components/AdminFeedback.vue"),},
   { path: "/ad", name: "AdVideoPage", component: () => import("../components/AdVideoPage.vue"),},
+  { path: "/admin/orders", name: "AdminOrders", component: AdminOrders },
 ];
 
 const router = createRouter({

@@ -55,6 +55,14 @@
 >
       💬 Phản hồi khách hàng
     </router-link>
+    <router-link
+      to="/admin/orders"
+      class="sidebar-item"
+      :class="{ active: isActive('/admin/orders') }"
+    >
+      Quản lý đơn hàng
+    </router-link>
+
   </nav>
 </template>
 

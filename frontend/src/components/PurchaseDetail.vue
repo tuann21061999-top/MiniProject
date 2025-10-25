@@ -421,8 +421,9 @@ export default {
         shippingMethod: this.selectedShipping,
         paymentMethod,
         warranty: this.selectedWarranty,
-        status,
+        status: "waiting_approval", // 🟡 tất cả đơn mới đều chờ duyệt
       };
+
 
       try {
         const res = await axios.post("http://localhost:5000/api/purchases/checkout", payload);

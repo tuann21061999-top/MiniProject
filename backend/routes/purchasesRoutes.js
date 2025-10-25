@@ -19,47 +19,49 @@ router.post("/checkout", async (req, res) => {
       shippingMethod,
       paymentMethod,
       warranty,
-      status,
     } = req.body;
 
     const itemsWithImport = await Promise.all(
       items.map(async (item) => {
         const foundPhone = await Phone.findOne({ _id: item.phoneId }).lean();
-
-        // ✅ Tìm đúng phiên bản bộ nhớ đã chọn
         const matchedStorage = foundPhone?.storages?.find(
           (s) => s.size === item.storage
         );
-
         const importPrice = matchedStorage?.importPrice || 0;
-
-        return {
-          ...item,
-          importPrice, // ✅ lưu đúng giá nhập của phiên bản
-        };
+        return { ...item, importPrice };
       })
-);
+    );
 
+    // ✅ Tính phí khu vực / vận chuyển / bảo hành
+    let regionFee =
+      region === "Miền Nam"
+        ? 10000
+        : region === "Miền Trung"
+        ? 20000
+        : region === "Miền Bắc"
+        ? 30000
+        : 0;
 
-    // ✅ Tính phí khu vực / phương thức / bảo hành
-    let regionFee = 0;
-    if (region === "Miền Nam") regionFee = 10000;
-    else if (region === "Miền Trung") regionFee = 20000;
-    else if (region === "Miền Bắc") regionFee = 30000;
+    let methodFee =
+      shippingMethod === "Giao Hàng Tiết Kiệm"
+        ? 10000
+        : shippingMethod === "Viettel Post"
+        ? 20000
+        : shippingMethod === "Giao Hàng Nhanh"
+        ? 30000
+        : 0;
 
-    let methodFee = 0;
-    if (shippingMethod === "Giao Hàng Tiết Kiệm") methodFee = 10000;
-    else if (shippingMethod === "Viettel Post") methodFee = 20000;
-    else if (shippingMethod === "Giao Hàng Nhanh") methodFee = 30000;
+    let warrantyFee =
+      warranty === "Bảo hành vàng"
+        ? 500000
+        : warranty === "Bảo hành VIP"
+        ? 1000000
+        : 0;
 
-    let warrantyFee = 0;
-    if (warranty === "Bảo hành vàng") warrantyFee = 500000;
-    else if (warranty === "Bảo hành VIP") warrantyFee = 1000000;
-
-    // ✅ Tạo đơn hàng
+    // ✅ Tạo đơn hàng (tất cả bắt đầu là waiting_approval)
     const purchase = new Purchase({
       email,
-      items: itemsWithImport, // ✅ dùng dữ liệu đã có importPrice
+      items: itemsWithImport,
       total,
       fullName,
       phone,
@@ -72,7 +74,7 @@ router.post("/checkout", async (req, res) => {
       regionFee,
       methodFee,
       warrantyFee,
-      status,
+      status: "waiting_approval", // 🟡 mặc định chờ duyệt
     });
 
     await purchase.save();
@@ -82,6 +84,7 @@ router.post("/checkout", async (req, res) => {
     res.status(500).json({ success: false, error: "Server error" });
   }
 });
+
 
 /* ====== 📌 Lấy tất cả đơn theo email user ====== */
 router.get("/user/:email", async (req, res) => {
@@ -119,6 +122,37 @@ router.delete("/:id", async (req, res) => {
     res.json({ success: true, message: "Đã xóa đơn hàng" });
   } catch (err) {
     console.error("❌ Lỗi xóa đơn:", err);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
+/* ====== 📌 Duyệt đơn hàng (Admin) ====== */
+router.put("/:id/approve", async (req, res) => {
+  try {
+    const order = await Purchase.findById(req.params.id);
+    if (!order) return res.status(404).json({ error: "Order not found" });
+
+    // ✅ Nếu là COD → chuyển sang pending
+    // ✅ Nếu là Online → chuyển sang paid
+    let newStatus =
+      order.paymentMethod?.toUpperCase() === "COD" ? "pending" : "paid";
+
+    order.status = newStatus;
+    await order.save();
+
+    res.json({ success: true, order });
+  } catch (err) {
+    console.error("❌ Lỗi duyệt đơn:", err);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+// 📦 Lấy toàn bộ đơn hàng (cho admin)
+router.get("/", async (req, res) => {
+  try {
+    const orders = await Purchase.find().sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (err) {
+    console.error("❌ Lỗi lấy danh sách đơn hàng:", err);
     res.status(500).json({ success: false, error: "Server error" });
   }
 });

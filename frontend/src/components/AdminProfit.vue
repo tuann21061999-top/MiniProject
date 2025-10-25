@@ -2,12 +2,13 @@
   <div class="admin-profit">
     <AdminSideBar active="profit" />
     <div class="content">
+      <!-- 🧭 Header -->
       <div class="header">
         <h2>💹 Thống kê lợi nhuận</h2>
         <p>Xem lợi nhuận bán máy hoặc bảo hành theo thời gian</p>
       </div>
 
-      <!-- Bộ lọc thời gian -->
+      <!-- 🕒 Bộ lọc thời gian -->
       <div class="filter-section">
         <label>Chế độ lọc:</label>
         <select v-model="mode" @change="fetchProfit">
@@ -38,38 +39,44 @@
         />
       </div>
 
-      <!-- Tổng hợp -->
+      <!-- 📊 Tổng hợp chung -->
       <div class="summary-box" v-if="summary">
+        <h3>📑 Tổng hợp lợi nhuận</h3>
         <p><b>🗓️ Thời gian:</b> {{ summary.range }}</p>
         <p><b>💰 Doanh thu:</b> {{ formatCurrency(summary.totalRevenue) }}</p>
         <p><b>💵 Chi phí:</b> {{ formatCurrency(summary.totalCost) }}</p>
         <p><b>📈 Lợi nhuận:</b> {{ formatCurrency(summary.totalProfit) }}</p>
       </div>
 
-      <!-- Chuyển chế độ -->
+      <!-- 🔁 Chuyển chế độ hiển thị -->
       <div class="view-toggle">
         <button
           :class="{ active: viewMode === 'device' }"
           @click="viewMode = 'device'; drawChart()"
         >
-          📱 Xem lợi nhuận bán máy
+          📱 Lợi nhuận bán máy
         </button>
         <button
           :class="{ active: viewMode === 'warranty' }"
           @click="viewMode = 'warranty'; drawChart()"
         >
-          🛡️ Xem lợi nhuận bảo hành
+          🛡️ Lợi nhuận bảo hành
         </button>
       </div>
 
-      <!-- Biểu đồ -->
+      <!-- 📈 Biểu đồ -->
       <div class="chart-box">
         <canvas id="profitChart"></canvas>
       </div>
 
-      <!-- Bảng chi tiết -->
-      <div v-if="viewMode === 'device'" class="table-container">
+      <!-- 🧾 Chi tiết theo chế độ -->
+      <div class="table-container" v-if="viewMode === 'device'">
         <h3>📱 Lợi nhuận bán máy</h3>
+        <div class="export-buttons">
+          <button @click="exportExcel('device')">📊 Xuất Excel</button>
+          <button @click="exportPDF('device')">📄 Xuất PDF</button>
+        </div>
+
         <table class="profit-table">
           <thead>
             <tr>
@@ -94,14 +101,28 @@
         </table>
       </div>
 
-      <div v-else class="table-container">
+      <div class="table-container" v-else>
         <h3>🛡️ Lợi nhuận bảo hành</h3>
+
+        <!-- 🔸 Tổng hợp riêng cho bảo hành -->
+        <div class="warranty-summary">
+          <p><b>Thời gian:</b> {{ summary.range }}</p>
+          <p>
+            <b>Tổng lợi nhuận bảo hành:</b>
+            {{ formatCurrency(warranty.gold.profit + warranty.vip.profit) }}
+          </p>
+        </div>
+
+        <div class="export-buttons">
+          <button @click="exportExcel('warranty')">📊 Xuất Excel</button>
+          <button @click="exportPDF('warranty')">📄 Xuất PDF</button>
+        </div>
+
         <table class="profit-table">
           <thead>
             <tr>
               <th>Loại</th>
               <th>Số lượng</th>
-              <th>Doanh thu</th>
               <th>Lợi nhuận</th>
             </tr>
           </thead>
@@ -109,13 +130,11 @@
             <tr>
               <td>Vàng</td>
               <td>{{ warranty.gold.qty }}</td>
-              <td class="revenue">{{ formatCurrency(warranty.gold.revenue) }}</td>
               <td class="profit">{{ formatCurrency(warranty.gold.profit) }}</td>
             </tr>
             <tr>
               <td>VIP</td>
               <td>{{ warranty.vip.qty }}</td>
-              <td class="revenue">{{ formatCurrency(warranty.vip.revenue) }}</td>
               <td class="profit">{{ formatCurrency(warranty.vip.profit) }}</td>
             </tr>
           </tbody>
@@ -128,6 +147,10 @@
 <script>
 import AdminSideBar from "../components/AdminSideBar.vue";
 import Chart from "chart.js/auto";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default {
   name: "AdminProfit",
@@ -140,7 +163,7 @@ export default {
       selectedYear: new Date().getFullYear(),
       summary: null,
       devices: [],
-      warranty: { gold: {}, vip: {} },
+      warranty: { gold: { qty: 0, profit: 0 }, vip: { qty: 0, profit: 0 } },
       chartInstance: null,
       viewMode: "device",
     };
@@ -167,7 +190,10 @@ export default {
 
         this.summary = data;
         this.devices = data.deviceDetails || [];
-        this.warranty = data.warrantyStats || {};
+        this.warranty = data.warrantyStats || {
+          gold: { qty: 0, profit: 0 },
+          vip: { qty: 0, profit: 0 },
+        };
         this.drawChart();
       } catch (err) {
         console.error("❌ Lỗi lấy dữ liệu:", err);
@@ -177,7 +203,8 @@ export default {
       if (this.chartInstance) this.chartInstance.destroy();
       const ctx = document.getElementById("profitChart").getContext("2d");
 
-      let labels = [], dataPoints = [];
+      let labels = [],
+        dataPoints = [];
       if (this.viewMode === "device") {
         labels = this.devices.map((p) => p.name);
         dataPoints = this.devices.map((p) => p.profit);
@@ -207,9 +234,7 @@ export default {
         },
         options: {
           responsive: true,
-          plugins: {
-            legend: { display: false },
-          },
+          plugins: { legend: { display: false } },
           scales: { y: { beginAtZero: true } },
         },
       });
@@ -219,6 +244,66 @@ export default {
         style: "currency",
         currency: "VND",
       }).format(v || 0);
+    },
+
+    // 📤 Xuất Excel
+    exportExcel(type) {
+      let data = [];
+      if (type === "device") {
+        data = this.devices.map((d, i) => ({
+          STT: i + 1,
+          "Tên sản phẩm": d.name,
+          "Số lượng": d.qty,
+          "Doanh thu": d.revenue,
+          "Giá nhập": d.cost,
+          "Lợi nhuận": d.profit,
+        }));
+      } else {
+        data = [
+          { Loại: "Bảo hành vàng", "Số lượng": this.warranty.gold.qty, "Lợi nhuận": this.warranty.gold.profit },
+          { Loại: "Bảo hành VIP", "Số lượng": this.warranty.vip.qty, "Lợi nhuận": this.warranty.vip.profit },
+        ];
+      }
+
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Lợi nhuận");
+      const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+      saveAs(new Blob([buffer]), `Profit_${type}_${this.summary.range}.xlsx`);
+    },
+
+    // 📄 Xuất PDF
+    exportPDF(type) {
+      const doc = new jsPDF();
+      doc.text("Báo cáo lợi nhuận - " + (type === "device" ? "Bán máy" : "Bảo hành"), 14, 16);
+      doc.setFontSize(11);
+      doc.text("Thời gian: " + this.summary.range, 14, 24);
+
+      const body =
+        type === "device"
+          ? this.devices.map((d, i) => [
+              i + 1,
+              d.name,
+              d.qty,
+              this.formatCurrency(d.revenue),
+              this.formatCurrency(d.cost),
+              this.formatCurrency(d.profit),
+            ])
+          : [
+              ["Bảo hành vàng", this.warranty.gold.qty, this.formatCurrency(this.warranty.gold.profit)],
+              ["Bảo hành VIP", this.warranty.vip.qty, this.formatCurrency(this.warranty.vip.profit)],
+            ];
+
+      autoTable(doc, {
+        head:
+          type === "device"
+            ? [["#", "Tên sản phẩm", "Số lượng", "Doanh thu", "Giá nhập", "Lợi nhuận"]]
+            : [["Loại", "Số lượng", "Lợi nhuận"]],
+        body,
+        startY: 30,
+      });
+
+      doc.save(`Profit_${type}_${this.summary.range}.pdf`);
     },
   },
 };
@@ -281,9 +366,16 @@ export default {
   margin-bottom: 25px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
 }
+.table-container {
+  background: white;
+  padding: 15px;
+  border-radius: 12px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
 .profit-table {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 10px;
 }
 .profit-table th {
   background: #8e44ad;
@@ -303,5 +395,30 @@ export default {
 .profit {
   color: #8e44ad;
   font-weight: bold;
+}
+.warranty-summary {
+  background: #fdf5ff;
+  padding: 10px;
+  border: 1px solid #e5c5ff;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+.export-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.export-buttons button {
+  background: linear-gradient(135deg, #27ae60, #2ecc71);
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.25s;
+}
+.export-buttons button:hover {
+  background: linear-gradient(135deg, #1e8449, #28b463);
 }
 </style>
