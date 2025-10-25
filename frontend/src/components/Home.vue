@@ -11,10 +11,32 @@
           <h3>⚙️ Cấu hình nổi bật</h3>
           <transition name="fade-slide" mode="out-in">
             <ul v-if="selectedPhone" :key="selectedPhone._id">
-              <li><b>Chip:</b> {{ selectedPhone.specs.chip }}</li>
-              <li><b>Màn hình:</b> {{ selectedPhone.specs.display }}</li>
-              <li><b>Camera:</b> {{ selectedPhone.specs.camera }}</li>
-              <li><b>Pin:</b> {{ selectedPhone.specs.battery }}</li>
+              <li v-if="selectedPhone.specs.chip"><b>Chip:</b> {{ selectedPhone.specs.chip["Chipset"] }}</li>
+              <li v-if="selectedPhone.specs.screen">
+                <b>Loại màn hình:</b> {{ selectedPhone.specs.screen["Loại màn hình"] }} <br>
+                <b>Kích thước:</b> {{ selectedPhone.specs.screen["Kích thước"] }} <br>
+                <b>Độ phân giải:</b> {{ selectedPhone.specs.screen["Độ phân giải"] }} <br>
+                <b>Tần số quét:</b> {{ selectedPhone.specs.screen["Tần số quét"] }}
+              </li>
+
+              <!-- ✅ Hiển thị camera rõ ràng hơn -->
+              <li v-if="typeof selectedPhone.specs.camera === 'object'">
+                <b>Camera sau:</b> {{ selectedPhone.specs.camera["Camera sau"] }} <br />
+                <b>Camera trước:</b> {{ selectedPhone.specs.camera["Camera trước"] }}
+              </li>
+              <li v-else>
+                <b>Camera:</b> {{ selectedPhone.specs.camera }}
+              </li>
+
+              <!-- ✅ Hiển thị pin gọn gàng hơn -->
+              <li v-if="typeof selectedPhone.specs.battery === 'object'">
+                <b>Pin:</b> {{ selectedPhone.specs.battery["Dung lượng"] }} <br />
+                <b>Sạc:</b> {{ selectedPhone.specs.battery["Sạc"] }}
+              </li>
+              <li v-else>
+                <b>Pin:</b> {{ selectedPhone.specs.battery }}
+              </li>
+
             </ul>
           </transition>
         </div>

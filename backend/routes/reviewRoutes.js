@@ -59,4 +59,39 @@ router.post("/", async (req, res) => {
   }
 });
 
+// 🟢 Lấy tất cả bình luận theo phoneId (cho phần hiển thị công khai)
+router.get("/all/:phoneId", async (req, res) => {
+  try {
+    const { phoneId } = req.params;
+
+    // Lấy tất cả review (mỗi user có thể có nhiều cmt trong comments object)
+    const reviews = await Review.find().lean();
+
+    const allComments = [];
+
+    reviews.forEach((rev) => {
+      if (rev.comments) {
+        Object.values(rev.comments).forEach((cmt) => {
+          // ✅ Chỉ lấy những comment trùng phoneId
+          if (cmt.phoneId === phoneId) {
+            allComments.push({
+              username: rev.username,
+              phoneId: cmt.phoneId,
+              phoneName: cmt.phoneName,
+              rating: cmt.rating,
+              text: cmt.text,
+              date: cmt.date,
+            });
+          }
+        });
+      }
+    });
+
+    res.json(allComments);
+  } catch (err) {
+    console.error("❌ Lỗi lấy tất cả review:", err);
+    res.status(500).json({ error: "Không thể tải danh sách bình luận" });
+  }
+});
+
 module.exports = router;

@@ -221,29 +221,196 @@ export default {
 </script>
 
 <style scoped>
-.address-manager h3 { color: #ff6600; margin-bottom: 10px; }
-.address-list { list-style: none; padding: 0; margin: 0; }
-.address-list li {
-  background: #fff3e0; border: 1px solid #ffcc80; padding: 10px;
-  border-radius: 8px; margin-bottom: 6px;
-  display: flex; justify-content: space-between; align-items: center;
-  cursor: pointer;
+.address-manager h3 {
+  color: #ff6600;
+  margin-bottom: 10px;
 }
-.address-list li.active { border-color: #ff9800; background: #ffe0b2; }
-.address-info p { margin: 2px 0; font-size: 14px; }
-.creator { font-size: 12px; color: #666; }
-.check-mark { color: #27ae60; margin-left: 8px; }
-.edit-btn, .remove-btn { background: none; border: none; cursor: pointer; font-size: 14px; margin-left: 6px; }
-.add-btn { margin-top: 10px; padding: 8px 14px; border: none; background: #ff6600; color: white; border-radius: 6px; cursor: pointer; }
-.add-btn:hover { background: #e65c00; }
-.overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 2000; }
-.form-popup { background: #fff; padding: 20px; border-radius: 12px; width: 400px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; gap: 10px; }
-.form-popup h3 { text-align: center; color: #ff6600; }
-.form-popup label { font-size: 14px; font-weight: 600; }
-.form-popup input, .form-popup select { padding: 10px; border: 1px solid #ddd; border-radius: 8px; outline: none; }
-.actions { margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px; }
-.actions button { padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-.actions button:first-child { background: #ff6600; color: #fff; }
-.actions button:first-child:hover { background: #e65c00; }
-.actions .cancel { background: #ccc; }
+
+/* ✅ Dạng lưới 2 cột cho danh sách địa chỉ */
+.address-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(48%, 1fr));
+  gap: 10px;
+}
+
+/* ✅ Ô địa chỉ mặc định (chưa chọn) */
+.address-list li {
+  background: #ffffff;
+  border: 1px solid #ddd;
+  padding: 14px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  min-height: 120px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+/* ✅ Khi hover vào ô địa chỉ */
+.address-list li:hover {
+  border-color: #ff6600;
+  background: #fff7f0;
+  transform: translateY(-2px);
+}
+
+/* ✅ Khi địa chỉ được chọn */
+.address-list li.active {
+  border-color: #2ecc71;
+  background: #e8f8f1;
+  box-shadow: 0 0 6px rgba(46, 204, 113, 0.4);
+}
+
+/* ===== Thông tin trong mỗi ô ===== */
+.address-info p {
+  margin: 3px 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #333;
+}
+
+.creator {
+  font-size: 12px;
+  color: #777;
+}
+
+/* ===== Biểu tượng, nút trong ô ===== */
+.address-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.check-mark {
+  color: #27ae60;
+  font-size: 16px;
+}
+
+.edit-btn,
+.remove-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  margin-left: 4px;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.edit-btn:hover {
+  color: #ff6600;
+  transform: scale(1.2);
+}
+
+.remove-btn:hover {
+  color: #e74c3c;
+  transform: scale(1.2);
+}
+
+/* ===== Nút thêm địa chỉ ===== */
+.add-btn {
+  margin-top: 12px;
+  padding: 10px 16px;
+  border: none;
+  background: linear-gradient(135deg, #ff6600, #ff944d);
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  font-weight: 600;
+}
+
+.add-btn:hover {
+  background: linear-gradient(135deg, #e65c00, #ff7a1a);
+  transform: translateY(-1px);
+}
+
+/* ===== Popup overlay ===== */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+/* ===== Form popup ===== */
+.form-popup {
+  background: #fff;
+  padding: 22px;
+  border-radius: 12px;
+  width: 400px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-popup h3 {
+  text-align: center;
+  color: #ff6600;
+  margin-bottom: 8px;
+}
+
+.form-popup label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 5px;
+}
+
+.form-popup input,
+.form-popup select {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-popup input:focus,
+.form-popup select:focus {
+  border-color: #ff944d;
+  box-shadow: 0 0 0 3px rgba(255, 148, 77, 0.15);
+}
+
+.actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.actions button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.25s ease;
+}
+
+.actions button:first-child {
+  background: #ff6600;
+  color: #fff;
+}
+
+.actions button:first-child:hover {
+  background: #e65c00;
+}
+
+.actions .cancel {
+  background: #ccc;
+}
+
+.actions .cancel:hover {
+  background: #b3b3b3;
+}
+
 </style>

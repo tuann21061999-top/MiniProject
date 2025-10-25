@@ -4,90 +4,89 @@
 
     <!-- 🔹 Thông tin cơ bản -->
     <div class="info card">
-      <p><b>Tên người dùng:</b> {{ user.name }}</p>
-      <p><b>Email:</b> {{ user.email }}</p>
-    </div>
-
-    <!-- 📍 Địa chỉ nhận hàng -->
-    <div class="section card">
-      <h3>📍 Địa chỉ nhận hàng</h3>
-      <div class="addresses">
-        <div
-          v-for="addr in addresses"
-          :key="addr._id"
-          class="address-card"
-          :class="{ selected: selectedAddress?._id === addr._id }"
-          @click="setDefaultAddress(addr)"
-        >
-          <span v-if="selectedAddress?._id === addr._id" class="checkmark">✅</span>
-          <p><b>{{ addr.fullName }}</b> | <span class="phone">+84 {{ formatPhone(addr.phone) }}</span></p>
-          <p>{{ addr.street }}, {{ addr.province }}</p>
-          <p><i>{{ addr.region }}</i></p>
-
-          <div class="address-actions" @click.stop>
-            <button @click="openEditPopup(addr)">✏️ Sửa</button>
-            <button @click="deleteAddress(addr)">🗑️ Xóa</button>
-          </div>
+      <div class="info-header">
+        <div>
+          <p><b>Tên người dùng:</b> {{ user.name }}</p>
+          <p><b>Email:</b> {{ user.email }}</p>
+          <p v-if="user.phone"><b>Số điện thoại:</b> {{ user.phone }}</p>
         </div>
 
-        <div class="address-card add-card" @click="openAddPopup">
-          ➕ Thêm địa chỉ mới
+        <div class="info-actions">
+          <button class="btn-action" @click="openChangePassword">🔐 Đổi mật khẩu</button>
+          <button class="btn-action" @click="openLinkPhone">
+            {{ user.phone ? "📱 Cập nhật SĐT" : "📱 Liên kết SĐT" }}
+          </button>
         </div>
       </div>
     </div>
 
+    <!-- 📍 Quản lý địa chỉ -->
+    <div class="section card address-section">
+      <AddressManager />
+    </div>
+
     <!-- 💳 Quản lý phương thức thanh toán -->
-    <div class="section card">
+    <div class="section card payment-section">
       <PaymentManager />
     </div>
 
     <!-- 🔒 Mã PIN thanh toán -->
-    <div class="section card">
+    <div class="section card pin-section">
       <h3>🔒 Mã PIN thanh toán</h3>
 
-      <div v-if="checkingPin">
-        <p>⏳ Đang kiểm tra mã PIN...</p>
-      </div>
+      <div v-if="checkingPin" class="pin-box loading">⏳ Đang kiểm tra mã PIN...</div>
 
-      <div v-else-if="hasPin" class="pin-info success">
+      <div v-else-if="hasPin" class="pin-box success">
         ✅ Bạn đã thiết lập mã PIN để bảo mật thanh toán.
         <button class="btn-change" @click="goToAddPin">🔁 Đổi mã PIN</button>
       </div>
 
-      <div v-else class="pin-info warning">
+      <div v-else class="pin-box warning">
         ⚠️ Bạn chưa có mã PIN thanh toán.
         <button class="btn-add" @click="goToAddPin">➕ Thêm mã PIN</button>
       </div>
     </div>
 
     <!-- 📦 Trạng thái đơn hàng -->
-    <div class="section card">
+    <div class="section card order-section">
       <PurchaseStatus />
     </div>
 
-    <!-- 📍 Popup thêm/sửa địa chỉ -->
-    <div v-if="showPopup" class="popup-overlay" @click.self="closePopup">
+    <!-- 🔐 Popup đổi mật khẩu -->
+    <div v-if="showPasswordPopup" class="popup-overlay" @click.self="closePopups">
       <div class="popup">
-        <h3>{{ isEditing ? "✏️ Chỉnh sửa địa chỉ" : "➕ Thêm địa chỉ mới" }}</h3>
-        <input v-model="formData.fullName" type="text" placeholder="Tên người nhận" />
-        <div class="phone-input">
-          <span class="prefix">+84</span>
+        <h3>🔐 Đổi mật khẩu</h3>
+        <div class="input-group">
+          <input v-model="passwordForm.oldPassword" type="password" placeholder="Mật khẩu cũ" />
+        </div>
+        <div class="input-group">
+          <input v-model="passwordForm.newPassword" type="password" placeholder="Mật khẩu mới" />
+        </div>
+        <div class="popup-actions">
+          <button class="btn-cancel" @click="closePopups">Hủy</button>
+          <button class="btn-save" @click="updatePassword">Cập nhật</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 📱 Popup cập nhật số điện thoại -->
+    <div v-if="showPhonePopup" class="popup-overlay" @click.self="closePopups">
+      <div class="popup">
+        <h3>{{ user.phone ? "📱 Cập nhật số điện thoại" : "📱 Liên kết số điện thoại" }}</h3>
+        <div class="input-group">
           <input
-            v-model="formData.phone"
+            v-model="phoneForm.phone"
             type="text"
-            placeholder="912345678"
-            maxlength="10"
+            placeholder="Nhập số điện thoại (bắt đầu bằng 0)"
             @input="validatePhone"
+            maxlength="11"
           />
         </div>
-        <select v-model="formData.province">
-          <option disabled value="">-- Chọn tỉnh/thành --</option>
-          <option v-for="p in provinces" :key="p" :value="p">{{ p }}</option>
-        </select>
-        <input v-model="formData.street" type="text" placeholder="Địa chỉ chi tiết (số nhà, đường...)" />
+        <p v-if="phoneError" class="error-text">{{ phoneError }}</p>
+
         <div class="popup-actions">
-          <button class="btn-cancel" @click="closePopup">Hủy</button>
-          <button class="btn-save" @click="saveAddress">Lưu</button>
+          <button class="btn-cancel" @click="closePopups">Hủy</button>
+          <button class="btn-save" @click="updatePhone">Lưu</button>
         </div>
       </div>
     </div>
@@ -96,135 +95,97 @@
 
 <script>
 import axios from "axios";
+import AddressManager from "./AddressManager.vue";
 import PaymentManager from "./PaymentManager.vue";
 import PurchaseStatus from "./PurchaseStatus.vue";
 
 export default {
   name: "Profile",
-  components: { PaymentManager, PurchaseStatus },
+  components: { AddressManager, PaymentManager, PurchaseStatus },
   data() {
     return {
       user: JSON.parse(localStorage.getItem("user")) || { id: null, name: "Khách", email: "guest@example.com" },
-      addresses: [],
-      selectedAddress: null,
-
       hasPin: false,
-      checkingPin: true, // trạng thái đang tải PIN
-
-      showPopup: false,
-      isEditing: false,
-      formData: {},
-      provinces: [
-        "Hà Nội","Hải Phòng","Quảng Ninh","Bắc Ninh","Bắc Giang","Nam Định","Thái Bình",
-        "Hải Dương","Hưng Yên","Vĩnh Phúc","Phú Thọ","Ninh Bình","Hà Nam","Thái Nguyên",
-        "Lạng Sơn","Cao Bằng","Yên Bái","Tuyên Quang","Hà Giang","Lào Cai","Bắc Kạn",
-        "Điện Biên","Lai Châu","Sơn La","Hòa Bình","Thanh Hóa","Nghệ An","Hà Tĩnh",
-        "Quảng Bình","Quảng Trị","Thừa Thiên Huế","Đà Nẵng","Quảng Nam","Quảng Ngãi",
-        "Bình Định","Phú Yên","Khánh Hòa","Ninh Thuận","Bình Thuận","Kon Tum","Gia Lai",
-        "Đắk Lắk","Đắk Nông","Lâm Đồng","TP Hồ Chí Minh","Bình Dương","Đồng Nai",
-        "Bà Rịa - Vũng Tàu","Tây Ninh","Long An","Tiền Giang","Bến Tre","Vĩnh Long",
-        "Trà Vinh","Đồng Tháp","An Giang","Kiên Giang","Cần Thơ","Hậu Giang","Sóc Trăng",
-        "Bạc Liêu","Cà Mau","Bình Phước"
-      ],
+      checkingPin: true,
+      showPasswordPopup: false,
+      showPhonePopup: false,
+      passwordForm: { oldPassword: "", newPassword: "" },
+      phoneForm: { phone: "" },
+      phoneError: "",
     };
   },
   methods: {
-    async fetchAddresses() {
-      if (!this.user?.id) return;
-      try {
-        const res = await axios.get(`http://localhost:5000/api/addresses/${this.user.id}`);
-        this.addresses = res.data;
-        this.selectedAddress = this.addresses.find(a => a.isDefault) || null;
-      } catch (err) {
-        console.error("❌ Lỗi tải địa chỉ:", err);
-      }
-    },
-
     async checkPin() {
       try {
         this.checkingPin = true;
         const res = await axios.get(`http://localhost:5000/api/pins/${this.user.email}`);
         this.hasPin = res.data?.hasPin || false;
-      } catch (err) {
-        console.error("❌ Lỗi kiểm tra PIN:", err);
+      } catch {
         this.hasPin = false;
       } finally {
         this.checkingPin = false;
       }
     },
-
     goToAddPin() {
       this.$router.push("/addpin");
     },
-
-    async setDefaultAddress(addr) {
-      await axios.put(`http://localhost:5000/api/addresses/${addr._id}`, {
-        userId: this.user.id,
-        isDefault: true,
-      });
-      await this.fetchAddresses();
+    openChangePassword() {
+      this.showPasswordPopup = true;
     },
-    async deleteAddress(addr) {
-      if (!confirm("Bạn có chắc muốn xóa địa chỉ này?")) return;
-      await axios.delete(`http://localhost:5000/api/addresses/${addr._id}`);
-      await this.fetchAddresses();
+    openLinkPhone() {
+      this.showPhonePopup = true;
+      this.phoneForm.phone = this.user.phone ? this.user.phone.replace("+84", "") : "";
     },
-
-    // Form địa chỉ
-    openAddPopup() {
-      this.isEditing = false;
-      this.formData = {};
-      this.showPopup = true;
-    },
-    openEditPopup(addr) {
-      this.isEditing = true;
-      this.formData = { ...addr, phone: addr.phone.replace("+84", "") };
-      this.showPopup = true;
+    closePopups() {
+      this.showPasswordPopup = false;
+      this.showPhonePopup = false;
     },
     validatePhone() {
-      this.formData.phone = this.formData.phone.replace(/\D/g, "");
-      if (this.formData.phone.startsWith("0"))
-        this.formData.phone = this.formData.phone.slice(1);
+      this.phoneForm.phone = this.phoneForm.phone.replace(/\D/g, ""); // chỉ cho số
+      if (this.phoneForm.phone && !this.phoneForm.phone.startsWith("0")) {
+        this.phoneError = "❌ Số điện thoại phải bắt đầu bằng 0.";
+      } else if (this.phoneForm.phone.length > 0 && (this.phoneForm.phone.length < 10 || this.phoneForm.phone.length > 11)) {
+        this.phoneError = "❌ Số điện thoại phải có 10 hoặc 11 chữ số.";
+      } else {
+        this.phoneError = "";
+      }
     },
-    async saveAddress() {
-      if (!this.formData.fullName || !this.formData.phone || !this.formData.street || !this.formData.province)
-        return alert("⚠️ Vui lòng nhập đầy đủ thông tin!");
-      const payload = {
-        userId: this.user.id,
-        email: this.user.email,
-        fullName: this.formData.fullName,
-        phone: "+84" + this.formData.phone,
-        province: this.formData.province,
-        street: this.formData.street,
-        isDefault: this.addresses.length === 0,
-      };
-      if (this.isEditing && this.formData._id)
-        await axios.put(`http://localhost:5000/api/addresses/${this.formData._id}`, payload);
-      else
-        await axios.post("http://localhost:5000/api/addresses", payload);
-
-      this.closePopup();
-      await this.fetchAddresses();
+    async updatePassword() {
+      try {
+        const res = await axios.put("http://localhost:5000/api/auth/update-password", {
+          email: this.user.email,
+          oldPassword: this.passwordForm.oldPassword,
+          newPassword: this.passwordForm.newPassword,
+        });
+        alert(res.data.message);
+        this.closePopups();
+      } catch (err) {
+        alert("❌ " + (err.response?.data?.error || "Lỗi đổi mật khẩu"));
+      }
     },
-    closePopup() {
-      this.showPopup = false;
-      this.isEditing = false;
-    },
-    formatPhone(phone) {
-      return phone.replace("+84", "");
+    async updatePhone() {
+      this.validatePhone();
+      if (this.phoneError || !this.phoneForm.phone) {
+        alert(this.phoneError || "❌ Vui lòng nhập số điện thoại hợp lệ");
+        return;
+      }
+      try {
+        const phone = "+84" + this.phoneForm.phone.replace(/^0/, "");
+        const res = await axios.put("http://localhost:5000/api/auth/update-phone", {
+          email: this.user.email,
+          phone,
+        });
+        alert(res.data.message);
+        localStorage.setItem("user", JSON.stringify(res.data.user));
+        this.user = res.data.user;
+        this.closePopups();
+      } catch (err) {
+        alert("❌ " + (err.response?.data?.error || "Lỗi cập nhật số điện thoại"));
+      }
     },
   },
   async mounted() {
-    await this.fetchAddresses();
-    await this.checkPin(); // 🔥 luôn kiểm tra với backend để hiển thị đúng
-  },
-  watch: {
-    // 🔄 Khi đổi tài khoản khác, tự động kiểm tra lại PIN mới
-    "user.email"(newEmail, oldEmail) {
-      if (newEmail && newEmail !== oldEmail) {
-        this.checkPin();
-      }
-    },
+    await this.checkPin();
   },
 };
 </script>
@@ -285,6 +246,44 @@ export default {
 }
 .info b {
   color: #ff6600;
+}
+
+/* ✅ Bổ sung cho 2 nút Đổi mật khẩu / Liên kết SĐT */
+.info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.info-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+  align-items: center;
+}
+.btn-action {
+  background: linear-gradient(135deg, #ff6600, #ff944d);
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 15px;
+  box-shadow: 0 4px 10px rgba(255, 102, 0, 0.25);
+  min-width: 150px;
+  text-align: center;
+}
+.btn-action:hover {
+  transform: translateY(-2px) scale(1.05);
+  background: linear-gradient(135deg, #e65c00, #ff7a1a);
+  box-shadow: 0 6px 16px rgba(255, 102, 0, 0.35);
+}
+.btn-action:active {
+  transform: scale(0.97);
 }
 
 /* ===== Địa chỉ ===== */
@@ -421,10 +420,11 @@ export default {
   align-items: center;
   z-index: 999;
 }
+
 .popup {
   background: #fff;
   border-radius: 14px;
-  padding: 24px;
+  padding: 36px 32px; /* ✅ tăng khoảng cách trong popup */
   max-width: 420px;
   width: 90%;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
@@ -441,27 +441,33 @@ export default {
   }
 }
 .popup h3 {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   color: #ff6600;
   font-weight: 700;
   text-align: center;
 }
+
+/* ✅ Các ô input popup không bị sát viền */
 .popup input,
 .popup select {
   width: 100%;
-  padding: 12px;
-  margin-bottom: 12px;
+  padding: 14px 18px; /* tăng đệm bên trong */
+  margin-bottom: 16px;
   border-radius: 10px;
   border: 1px solid #ccc;
   font-size: 15px;
   outline: none;
   transition: all 0.25s ease;
+  background-color: #fff;
+  box-sizing: border-box;
 }
 .popup input:focus,
 .popup select:focus {
   border-color: #ff944d;
   box-shadow: 0 0 0 3px rgba(255, 148, 77, 0.15);
 }
+
+/* Phần nhập số điện thoại có prefix */
 .phone-input {
   display: flex;
   align-items: center;
@@ -478,6 +484,8 @@ export default {
   border-radius: 0 8px 8px 0;
   border-left: none;
 }
+
+/* Nút trong popup */
 .popup-actions {
   display: flex;
   justify-content: space-between;
@@ -486,7 +494,7 @@ export default {
 .btn-cancel,
 .btn-save {
   flex: 1;
-  padding: 10px 14px;
+  padding: 12px 16px;
   font-weight: 700;
   border: none;
   border-radius: 8px;
@@ -510,4 +518,17 @@ export default {
   background: #ccc;
   transform: translateY(-1px);
 }
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .info-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .btn-action {
+    width: 100%;
+    text-align: center;
+  }
+}
 </style>
+
