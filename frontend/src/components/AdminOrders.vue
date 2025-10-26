@@ -1,86 +1,89 @@
 <template>
-  <div class="admin-orders">
-    <h2 class="page-title">📦 Quản lý đơn hàng</h2>
+  <div class="admin-orders-page">
+    <!-- Sidebar -->
+    <AdminSideBar :pendingCount="pendingCount" active="orders" />
 
-    <!-- Bảng danh sách đơn -->
-    <table class="orders-table">
-      <thead>
-        <tr>
-          <th>Mã đơn</th>
-          <th>Khách hàng</th>
-          <th>Ngày tạo</th>
-          <th>Phương thức</th>
-          <th>Trạng thái</th>
-          <th>Tổng tiền</th>
-          <th>Thao tác</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="order in orders" :key="order._id">
-          <td>{{ order._id.slice(-6).toUpperCase() }}</td>
-          <td>
-            <b>{{ order.fullName }}</b><br />
-            <small>{{ order.email }}</small><br />
-            <small>{{ order.phone }}</small>
-          </td>
-          <td>{{ formatDate(order.createdAt) }}</td>
-          <td>{{ order.paymentMethod.toUpperCase() }}</td>
-          <td>
-            <span :class="['status-badge', order.status]">
-              {{ formatStatus(order.status) }}
-            </span>
-          </td>
-          <td>{{ formatPrice(order.total) }}</td>
-          <td class="actions">
-            <!-- Nút xem chi tiết -->
-            <button class="btn view" @click="viewDetails(order)">👁️</button>
+    <!-- Nội dung chính -->
+    <div class="main-content">
+      <h2 class="page-title">📦 Quản lý đơn hàng</h2>
 
-            <!-- Nút duyệt (chỉ hiển thị khi đang chờ duyệt) -->
-            <button
-              v-if="order.status === 'waiting_approval'"
-              class="btn approve"
-              @click="approveOrder(order)"
-            >
-              ✅ Duyệt
-            </button>
+      <!-- Bảng danh sách đơn -->
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th>Mã đơn</th>
+            <th>Khách hàng</th>
+            <th>Ngày tạo</th>
+            <th>Phương thức</th>
+            <th>Trạng thái</th>
+            <th>Tổng tiền</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="order in orders" :key="order._id">
+            <td>{{ order._id.slice(-6).toUpperCase() }}</td>
+            <td>
+              <b>{{ order.fullName }}</b><br />
+              <small>{{ order.email }}</small><br />
+              <small>{{ order.phone }}</small>
+            </td>
+            <td>{{ formatDate(order.createdAt) }}</td>
+            <td>{{ order.paymentMethod.toUpperCase() }}</td>
+            <td>
+              <span :class="['status-badge', order.status]">
+                {{ formatStatus(order.status) }}
+              </span>
+            </td>
+            <td>{{ formatPrice(order.total) }}</td>
+            <td class="actions">
+              <button class="btn view" @click="viewDetails(order)">👁️</button>
 
-            <!-- Nút hủy (chỉ hiển thị khi chưa hoàn tất) -->
-            <button
-              v-if="!['done', 'cancelled', 'unsuccessful'].includes(order.status)"
-              class="btn cancel"
-              @click="cancelOrder(order)"
-            >
-              ❌ Hủy
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+              <button
+                v-if="order.status === 'waiting_approval'"
+                class="btn approve"
+                @click="approveOrder(order)"
+              >
+                ✅ Duyệt
+              </button>
 
-    <p v-if="!orders.length" class="empty">Không có đơn hàng nào.</p>
+              <button
+                v-if="!['done', 'cancelled', 'unsuccessful'].includes(order.status)"
+                class="btn cancel"
+                @click="cancelOrder(order)"
+              >
+                ❌ Hủy
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-    <!-- Popup chi tiết -->
-    <div v-if="showPopup" class="popup-overlay" @click.self="closePopup">
-      <div class="popup">
-        <h3>📋 Chi tiết đơn hàng</h3>
-        <p><b>Mã đơn:</b> {{ selectedOrder._id }}</p>
-        <p><b>Khách:</b> {{ selectedOrder.fullName }} ({{ selectedOrder.email }})</p>
-        <p><b>Địa chỉ:</b> {{ selectedOrder.shippingAddress }}, {{ selectedOrder.province }}</p>
-        <p><b>Điện thoại:</b> {{ selectedOrder.phone }}</p>
-        <p><b>Phương thức:</b> {{ selectedOrder.paymentMethod }}</p>
-        <p><b>Trạng thái:</b> {{ formatStatus(selectedOrder.status) }}</p>
-        <hr />
-        <h4>🛍️ Danh sách sản phẩm:</h4>
-        <ul>
-          <li v-for="(item, i) in selectedOrder.items" :key="i">
-            {{ item.name }} - {{ item.color }} - {{ item.storage }} (x{{ item.quantity }})
-            → {{ formatPrice(item.price * item.quantity) }}
-          </li>
-        </ul>
-        <hr />
-        <p><b>Tổng cộng:</b> {{ formatPrice(selectedOrder.total) }}</p>
-        <div class="popup-actions">
-          <button @click="closePopup" class="btn close">Đóng</button>
+      <p v-if="!orders.length" class="empty">Không có đơn hàng nào.</p>
+
+      <!-- Popup chi tiết -->
+      <div v-if="showPopup" class="popup-overlay" @click.self="closePopup">
+        <div class="popup">
+          <h3>📋 Chi tiết đơn hàng</h3>
+          <p><b>Mã đơn:</b> {{ selectedOrder._id }}</p>
+          <p><b>Khách:</b> {{ selectedOrder.fullName }} ({{ selectedOrder.email }})</p>
+          <p><b>Địa chỉ:</b> {{ selectedOrder.shippingAddress }}, {{ selectedOrder.province }}</p>
+          <p><b>Điện thoại:</b> {{ selectedOrder.phone }}</p>
+          <p><b>Phương thức:</b> {{ selectedOrder.paymentMethod }}</p>
+          <p><b>Trạng thái:</b> {{ formatStatus(selectedOrder.status) }}</p>
+          <hr />
+          <h4>🛍️ Danh sách sản phẩm:</h4>
+          <ul>
+            <li v-for="(item, i) in selectedOrder.items" :key="i">
+              {{ item.name }} - {{ item.color }} - {{ item.storage }} (x{{ item.quantity }})
+              → {{ formatPrice(item.price * item.quantity) }}
+            </li>
+          </ul>
+          <hr />
+          <p><b>Tổng cộng:</b> {{ formatPrice(selectedOrder.total) }}</p>
+          <div class="popup-actions">
+            <button @click="closePopup" class="btn close">Đóng</button>
+          </div>
         </div>
       </div>
     </div>
@@ -90,12 +93,15 @@
 <script>
 import axios from "axios";
 import Swal from "sweetalert2";
+import AdminSideBar from "../components/AdminSideBar.vue";
 
 export default {
   name: "AdminOrders",
+  components: { AdminSideBar },
   data() {
     return {
       orders: [],
+      pendingCount: 0,
       showPopup: false,
       selectedOrder: {},
     };
@@ -107,6 +113,10 @@ export default {
         this.orders = res.data.sort(
           (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
         );
+        // 🔴 Đếm số đơn chờ duyệt
+        this.pendingCount = this.orders.filter(
+          (o) => o.status === "waiting_approval"
+        ).length;
       } catch (err) {
         console.error("❌ Lỗi tải đơn hàng:", err);
       }
@@ -129,6 +139,7 @@ export default {
         );
         order.status = res.data.order.status;
         Swal.fire("Thành công!", `Đơn đã duyệt (${order.status.toUpperCase()})`, "success");
+        this.fetchOrders();
       } catch (err) {
         console.error("❌ Lỗi duyệt đơn:", err);
         Swal.fire("Lỗi", "Không thể duyệt đơn hàng!", "error");
@@ -152,6 +163,7 @@ export default {
         });
         order.status = "cancelled";
         Swal.fire("Đã hủy!", "Đơn hàng đã được hủy.", "success");
+        this.fetchOrders();
       } catch (err) {
         console.error("❌ Lỗi hủy đơn:", err);
         Swal.fire("Lỗi", "Không thể hủy đơn hàng!", "error");
@@ -195,13 +207,16 @@ export default {
 </script>
 
 <style scoped>
-.admin-orders {
-  background: #fff;
-  border-radius: 14px;
-  padding: 20px 24px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+.admin-orders-page {
+  display: flex;
+  background: #f8fafc;
+  height: 100vh;
 }
-
+.main-content {
+  flex: 1;
+  padding: 25px 35px;
+  overflow-y: auto;
+}
 .page-title {
   text-align: center;
   color: #ff6600;
@@ -209,31 +224,26 @@ export default {
   font-weight: 700;
   margin-bottom: 20px;
 }
-
 .orders-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
 }
-
 .orders-table th,
 .orders-table td {
   padding: 10px 8px;
   text-align: center;
   border-bottom: 1px solid #eee;
 }
-
 .orders-table th {
   background: #f8f9fa;
   color: #444;
 }
-
 .actions {
   display: flex;
   justify-content: center;
   gap: 6px;
 }
-
 .btn {
   border: none;
   padding: 6px 10px;
@@ -242,7 +252,6 @@ export default {
   font-size: 13px;
   transition: 0.3s;
 }
-
 .btn.view {
   background: #17a2b8;
   color: #fff;
@@ -250,7 +259,6 @@ export default {
 .btn.view:hover {
   background: #138496;
 }
-
 .btn.approve {
   background: #28a745;
   color: #fff;
@@ -258,7 +266,6 @@ export default {
 .btn.approve:hover {
   background: #218838;
 }
-
 .btn.cancel {
   background: #dc3545;
   color: #fff;
@@ -266,14 +273,11 @@ export default {
 .btn.cancel:hover {
   background: #b02a37;
 }
-
 .empty {
   text-align: center;
   color: #777;
   margin-top: 20px;
 }
-
-/* ==== Popup ==== */
 .popup-overlay {
   position: fixed;
   inset: 0;
@@ -290,33 +294,7 @@ export default {
   width: 420px;
   max-height: 90vh;
   overflow-y: auto;
-  animation: fadeIn 0.25s ease;
 }
-.popup h3 {
-  color: #ff6600;
-  margin-bottom: 10px;
-}
-.popup ul {
-  list-style: none;
-  padding-left: 0;
-}
-.popup ul li {
-  border-bottom: 1px dashed #ddd;
-  padding: 6px 0;
-}
-.popup-actions {
-  margin-top: 10px;
-  text-align: right;
-}
-.btn.close {
-  background: #ccc;
-  color: #000;
-}
-.btn.close:hover {
-  background: #bbb;
-}
-
-/* ==== Trạng thái ==== */
 .status-badge {
   padding: 4px 8px;
   border-radius: 6px;
@@ -330,9 +308,4 @@ export default {
 .status-badge.done { background: #c3e6cb; color: #155724; }
 .status-badge.cancelled { background: #f8d7da; color: #721c24; }
 .status-badge.unsuccessful { background: #f5c6cb; color: #721c24; }
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
-}
 </style>

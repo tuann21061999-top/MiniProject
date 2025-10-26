@@ -25,6 +25,7 @@ import AddPin from "../components/AddPin.vue";
 import Specs from "../components/Specs.vue";
 import Review from "../components/Review.vue";
 import AdminOrders from "../components/AdminOrders.vue";
+import AdminSpecs from "../components/AdminSpecs.vue";
 
 const routes = [
   { path: "/", name: "Home", component: Home },
@@ -75,6 +76,8 @@ const routes = [
   { path: "/admin/feedbacks",name: "AdminFeedback",component: () => import("../components/AdminFeedback.vue"),},
   { path: "/ad", name: "AdVideoPage", component: () => import("../components/AdVideoPage.vue"),},
   { path: "/admin/orders", name: "AdminOrders", component: AdminOrders },
+  { path: "/admin/specs", name: "AdminSpecs", component: AdminSpecs },
+
 ];
 
 const router = createRouter({

@@ -36,12 +36,11 @@
               <li v-else>
                 <b>Pin:</b> {{ selectedPhone.specs.battery }}
               </li>
-
             </ul>
           </transition>
         </div>
 
-        <!-- Giữa: Stack ảnh -->
+        <!-- Giữa -->
         <div
           class="hero-center"
           @mousemove="handleMouseMove"
@@ -110,6 +109,44 @@
       </div>
     </section>
 
+    <!-- 🔥 ƯU ĐÃI NỔI BẬT -->
+    <section class="hot-deals">
+      <h2>🔥 Ưu đãi nổi bật</h2>
+      <div class="deal-list">
+        <div class="deal-card" v-for="deal in hotDeals" :key="deal.name">
+          <img :src="deal.image" :alt="deal.name" />
+          <div class="deal-info">
+            <h3>{{ deal.name }}</h3>
+            <p class="old-price">{{ formatPrice(deal.oldPrice) }}</p>
+            <p class="new-price">{{ formatPrice(deal.newPrice) }}</p>
+            <button @click="$router.push('/phones')">Xem ngay</button>
+          </div>
+          <div class="tag">Giảm {{ deal.discount }}%</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 💬 ĐÁNH GIÁ KHÁCH HÀNG -->
+    <section class="testimonials">
+      <h2>💬 Khách hàng nói gì về T&V Mobile</h2>
+      <div class="testimonial-list">
+        <div class="testimonial" v-for="t in testimonials" :key="t.name">
+          <img :src="t.avatar" />
+          <p>"{{ t.comment }}"</p>
+          <h4>{{ t.name }}</h4>
+          <div class="stars">⭐⭐⭐⭐⭐</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 🤝 THƯƠNG HIỆU HỢP TÁC -->
+    <section class="brands">
+      <h2>🤝 Thương hiệu hợp tác</h2>
+      <div class="brand-logos">
+        <img v-for="b in brands" :key="b" :src="b" />
+      </div>
+    </section>
+
     <Footer />
   </div>
 </template>
@@ -132,6 +169,53 @@ export default {
         { name: "Samsung", image: "https://cdn.tgdd.vn/Brand/1/logo-samsung-220x48.png" },
         { name: "Xiaomi", image: "https://cdn.tgdd.vn/Brand/1/logo-xiaomi-220x48.png" },
       ],
+      hotDeals: [
+        {
+          name: "iPhone 15 Pro Max",
+          oldPrice: 37990000,
+          newPrice: 32990000,
+          discount: 13,
+          image: "https://cdn.tgdd.vn/Products/Images/42/302669/iphone-15-pro-max-gold-thumb-600x600.jpg",
+        },
+        {
+          name: "Samsung Galaxy S24 Ultra",
+          oldPrice: 31990000,
+          newPrice: 28990000,
+          discount: 9,
+          image: "https://cdn.tgdd.vn/Products/Images/42/305658/samsung-galaxy-s24-ultra-thumb-600x600.jpg",
+        },
+        {
+          name: "Xiaomi 14 Ultra",
+          oldPrice: 25990000,
+          newPrice: 21990000,
+          discount: 15,
+          image: "https://cdn.tgdd.vn/Products/Images/42/311167/xiaomi-14-ultra-thumb-600x600.jpg",
+        },
+      ],
+      testimonials: [
+        {
+          name: "Nguyễn Minh Tuấn",
+          comment: "Mua iPhone ở đây rất hài lòng, tư vấn kỹ và giao hàng nhanh.",
+          avatar: "https://randomuser.me/api/portraits/men/1.jpg",
+        },
+        {
+          name: "Trần Hồng Anh",
+          comment: "Giá tốt, nhiều khuyến mãi, dịch vụ bảo hành tận tâm!",
+          avatar: "https://randomuser.me/api/portraits/women/2.jpg",
+        },
+        {
+          name: "Lê Văn Quang",
+          comment: "Đổi iPhone cũ lấy mới cực nhanh, rất tiện lợi!",
+          avatar: "https://randomuser.me/api/portraits/men/3.jpg",
+        },
+      ],
+      brands: [
+        "https://cdn.tgdd.vn/Brand/1/logo-iphone-220x48.png",
+        "https://cdn.tgdd.vn/Brand/1/logo-samsung-220x48.png",
+        "https://cdn.tgdd.vn/Brand/1/logo-oppo-220x48.png",
+        "https://cdn.tgdd.vn/Brand/1/logo-xiaomi-220x48.png",
+        "https://cdn.tgdd.vn/Brand/1/logo-vivo-220x48.png",
+      ],
     };
   },
   computed: {
@@ -140,55 +224,19 @@ export default {
     },
   },
   methods: {
-    /** ✅ Lấy đúng 3 sản phẩm nổi bật từ MongoDB */
     async fetchFeaturedPhones() {
       try {
         const res = await axios.get("http://localhost:5000/api/phones");
         const all = res.data || [];
-
-        // 🔹 Danh sách tên sản phẩm nổi bật cần lấy
-        const highlightNames = [
-          "Xiaomi 15 Ultra",
-          "iPhone 17 Pro Max",
-          "Samsung Galaxy S25 Ultra",
-        ];
-
-        // 🔹 Lọc theo tên (không phân biệt hoa thường)
+        const highlightNames = ["Xiaomi 15 Ultra", "iPhone 17 Pro Max", "Samsung Galaxy S25 Ultra"];
         const featured = all.filter((p) =>
-          highlightNames.some(
-            (name) => p.name?.toLowerCase().includes(name.toLowerCase())
-          )
+          highlightNames.some((name) => p.name?.toLowerCase().includes(name.toLowerCase()))
         );
-
-        // 🔹 Nếu trong DB chưa có đủ, lấy tạm 3 cái đầu (fallback)
-        this.featuredPhones =
-          featured.length >= 3
-            ? featured
-            : all.slice(0, 3).map((p) => ({
-                ...p,
-                specs: p.specs || {
-                  chip: "Snapdragon 8 Gen 3",
-                  display: "AMOLED 6.7 inch 120Hz",
-                  camera: "200MP + 50MP + 10MP",
-                  battery: "5000mAh sạc nhanh 45W",
-                },
-              }));
-
-        // 🔹 Đảm bảo có field specs để hiển thị
-        this.featuredPhones = this.featuredPhones.map((p) => ({
-          ...p,
-          specs: p.specs || {
-            chip: "Snapdragon 8 Gen 3",
-            display: "AMOLED 6.7 inch 120Hz",
-            camera: "200MP + 50MP + 10MP",
-            battery: "5000mAh sạc nhanh 45W",
-          },
-        }));
+        this.featuredPhones = featured.length >= 3 ? featured : all.slice(0, 3);
       } catch (err) {
         console.error("❌ Lỗi load phones:", err);
       }
     },
-
     selectProduct(i) {
       this.selectedIndex = i;
     },
@@ -217,24 +265,18 @@ export default {
           rotateZ(${rotateZ}deg)
           scale(${scale})
         `,
-        transition: "transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease",
       };
     },
     handleMouseMove(e) {
       const rect = e.currentTarget.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width - 0.5;
-      const y = (e.clientY - rect.top) / rect.height - 0.5;
-      this.tilt.x = x;
-      this.tilt.y = y;
+      this.tilt.x = (e.clientX - rect.left) / rect.width - 0.5;
+      this.tilt.y = (e.clientY - rect.top) / rect.height - 0.5;
     },
     resetTilt() {
       this.tilt = { x: 0, y: 0 };
     },
     formatPrice(v) {
-      return new Intl.NumberFormat("vi-VN", {
-        style: "currency",
-        currency: "VND",
-      }).format(v);
+      return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v);
     },
     goToCategory(name) {
       const brandMap = { iPhone: "Apple" };
@@ -254,11 +296,12 @@ export default {
   background: #f7f9fc;
 }
 
-/* 🎯 Hero */
+/* 🎯 Hero Section */
 .hero {
   padding: 80px 40px;
   transition: background 0.6s ease;
 }
+
 .hero-inner {
   display: flex;
   justify-content: space-between;
@@ -284,41 +327,81 @@ export default {
   line-height: 1.6;
 }
 
-/* Giữa - Stack + Parallax */
+/* 🎬 Giữa - Stack + Hiệu ứng nghiêng 3D */
 .hero-center {
   flex: 1.2;
   position: relative;
   display: flex;
   justify-content: center;
-  height: 380px;
+  height: 400px;
   perspective: 1000px;
   cursor: pointer;
+  transition: transform 0.6s ease;
 }
+
 .phone-stack {
   position: relative;
   width: 280px;
-  height: 360px;
+  height: 380px;
+  transform-style: preserve-3d;
 }
+
 .phone-card {
   position: absolute;
   top: 0;
   left: 0;
   width: 280px;
-  height: 360px;
+  height: 380px;
   border-radius: 20px;
   background: white;
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
   overflow: hidden;
+  transition:
+    transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1),
+    opacity 0.4s ease,
+    box-shadow 0.3s ease;
 }
+
 .phone-card img {
   width: 100%;
   height: 100%;
   object-fit: contain;
   border-radius: 20px;
-  transition: transform 0.3s ease;
+  transition: transform 0.4s ease, filter 0.4s ease;
 }
 
-/* Bên phải */
+.phone-card.active {
+  z-index: 5;
+  opacity: 1;
+  transform: scale(1) translateZ(40px);
+}
+
+.phone-card:not(.active) {
+  opacity: 0.8;
+  transform: scale(0.9) translateY(20px);
+}
+
+/* Hiệu ứng hover */
+.hero-center:hover .phone-card.active img {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+/* 🎥 Hiệu ứng chuyển cảnh giữa các sản phẩm */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.8s ease;
+}
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(30px);
+}
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-30px);
+}
+
+/* 🧭 Bên phải */
 .hero-right {
   flex: 1;
   text-align: left;
@@ -368,27 +451,15 @@ export default {
   font-weight: bold;
   cursor: pointer;
   margin-top: 12px;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
   margin-left: 40px;
 }
 .buy-btn:hover {
   transform: scale(1.07);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
-/* Hiệu ứng chuyển mượt */
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-  transition: all 0.6s ease;
-}
-.fade-slide-enter-from {
-  opacity: 0;
-  transform: translateY(20px);
-}
-.fade-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-20px);
-}
-
+/* ✨ Animation keyframes */
 @keyframes fadeInLeft {
   from {
     opacity: 0;
@@ -400,15 +471,10 @@ export default {
   }
 }
 
+
 /* Danh mục nổi bật */
 .categories {
   margin: 60px auto 80px;
-}
-.categories h2 {
-  font-size: 24px;
-  margin-bottom: 30px;
-  color: #333;
-  font-weight: 700;
 }
 .category-list {
   display: flex;
@@ -421,23 +487,105 @@ export default {
   padding: 25px;
   border-radius: 16px;
   width: 220px;
-  cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
 }
 .category-card:hover {
-  transform: translateY(-8px) scale(1.03);
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
+  transform: translateY(-8px);
 }
-.category-card img {
+
+/* 🔥 ƯU ĐÃI NỔI BẬT */
+.hot-deals {
+  background: #fff7f0;
+  padding: 50px 0;
+}
+.deal-list {
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+  flex-wrap: wrap;
+}
+.deal-card {
+  position: relative;
+  background: white;
+  border-radius: 16px;
+  width: 250px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: 0.3s;
+}
+.deal-card:hover {
+  transform: translateY(-6px);
+}
+.deal-card img {
   width: 100%;
-  height: 50px;
+  height: 180px;
   object-fit: contain;
-  margin-bottom: 12px;
+  background: #fafafa;
 }
-.category-card h3 {
-  color: #333;
-  font-size: 18px;
+.deal-info {
+  padding: 12px;
+}
+.old-price {
+  text-decoration: line-through;
+  color: #999;
+}
+.new-price {
+  color: #e74c3c;
+  font-weight: bold;
+}
+.deal-info button {
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: #ff6600;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.tag {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #e74c3c;
+  color: white;
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 13px;
   font-weight: 600;
 }
+
+/* 💬 Đánh giá khách hàng */
+.testimonials {
+  padding: 60px 0;
+  background: #fff;
+}
+.testimonial-list {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+.testimonial {
+  width: 280px;
+  background: #fdfdfd;
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+.testimonial img {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  margin-bottom: 10px;
+}
+.testimonial p {
+  font-style: italic;
+  color: #555;
+  margin-bottom: 10px;
+}
+.stars {
+  color: #f1c40f;
+}
+
 </style>

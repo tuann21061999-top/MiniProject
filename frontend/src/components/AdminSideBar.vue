@@ -8,7 +8,6 @@
       📦 Quản lý sản phẩm
     </router-link>
 
-    <!-- ✅ THÊM LINK KHO HÀNG -->
     <router-link
       to="/admin/warehouse"
       class="sidebar-item"
@@ -42,27 +41,38 @@
     </router-link>
 
     <router-link
-        to="/admin/profit"
-        class="sidebar-item"
-        :class="{ active: active === 'profit' }"
+      to="/admin/profit"
+      class="sidebar-item"
+      :class="{ active: active === 'profit' }"
     >
-        💹 Lợi nhuận
+      💹 Lợi nhuận
     </router-link>
+
     <router-link
       to="/admin/feedbacks"
       class="sidebar-item"
       :class="{ active: active === 'feedback' }"
->
+    >
       💬 Phản hồi khách hàng
     </router-link>
+
     <router-link
       to="/admin/orders"
       class="sidebar-item"
       :class="{ active: isActive('/admin/orders') }"
     >
-      Quản lý đơn hàng
+      🧾 Quản lý đơn hàng
+      <!-- 🔴 Hiển thị badge nếu có đơn chờ duyệt -->
+      <span v-if="pendingCount > 0" class="badge">{{ pendingCount }}</span>
     </router-link>
 
+    <router-link
+      to="/admin/specs"
+      class="sidebar-item"
+      :class="{ active: isActive('/admin/specs') }"
+    >
+      ⚙️ Cấu hình sản phẩm
+    </router-link>
   </nav>
 </template>
 
@@ -71,10 +81,10 @@ export default {
   name: "AdminSideBar",
   props: {
     active: String,
+    pendingCount: { type: Number, default: 0 }, // ✅ thêm dòng này
   },
   methods: {
     isActive(path) {
-      // ✅ CẬP NHẬT LOGIC ACTIVE ĐỂ CHÍNH XÁC HƠN
       return this.$route.path === path;
     },
   },
@@ -116,5 +126,14 @@ export default {
   color: #fff;
   font-weight: 600;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+}
+.badge {
+  background: red;
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 50%;
+  padding: 2px 6px;
+  line-height: 1;
 }
 </style>
